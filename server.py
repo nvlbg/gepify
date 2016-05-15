@@ -15,6 +15,10 @@ ydl_opts = {
 
 app = Flask(__name__)
 
+@app.route('/')
+def home():
+    return 'Hello'
+
 @app.route("/download/<video_id>")
 def download(video_id):
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:

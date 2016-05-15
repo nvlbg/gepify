@@ -26,4 +26,4 @@ def download(video_id):
 # app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()

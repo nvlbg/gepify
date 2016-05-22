@@ -10,7 +10,4 @@ for service in services:
 app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 app.debug = os.environ.get('FLASK_DEBUG') == '1'
 
-
-@app.route('/')
-def index():
-    return render_template('index.html', title='Gepify')
+from . import views  # nopep8

@@ -11,7 +11,9 @@ import urllib
 @login_required
 def index():
     playlists = models.get_playlists()
-    return render_template('show_playlists.html', playlists=playlists)
+    return render_template('show_playlists.html',
+                           title='Spotify playlists',
+                           playlists=playlists)
 
 
 @spotify_service.route('/login')

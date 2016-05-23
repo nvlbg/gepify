@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+{% block content %}
+  <h2>{{ playlist['name'] }}</h1>
+  {% if playlist['description'] %}
+  <h3>{{ playlist['description'] }}</h3>
+  {% endif %}
+  <ul>
+  {% for track in playlist['tracks'] %}
+    <li>{{ track['artists'][0]['name'] }} - {{ track['name'] }}</li>
+  {% endfor %}
+  </ul>
+{% endblock %}

@@ -71,3 +71,10 @@ def logout():
     session.pop('spotify_username', None)
 
     return redirect(url_for('index'))
+
+
+@spotify_service.route('/playlist/<id>')
+@login_required
+def playlist(id):
+    playlist_info = models.get_playlist(id)
+    return render_template('show_tracks.html', playlist=playlist_info)

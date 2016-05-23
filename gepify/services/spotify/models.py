@@ -35,24 +35,57 @@ def request_access_token(payload):
         raise Exception()
 
 
-def get_playlists():
+def get_username():
     sp = g.spotipy
     username = session.get('spotify_username', None)
     if username is None:
         username = sp.me()['id']
         session['spotify_username'] = username
 
+    return username
+
+
+def get_playlists():
+    sp = g.spotipy
+    username = get_username()
+
     results = sp.user_playlists(username)
 
     playlists = []
 
     for item in results['items']:
-        playlist = item['name']
+        playlist = {
+            'id': item['id'],
+            'images': item['images'],
+            'name': item['name'],
+            'num_tracks': item['tracks']['total']
+        }
         playlists.append(playlist)
 
-    results = sp.current_user_saved_albums()['items']
+    # results = sp.current_user_saved_albums()['items']
 
-    for item in results:
-        playlists.append(item['album']['name'])
+    # for item in results:
+    #     playlists.append(item['album']['name'])
 
     return playlists
+
+
+def get_playlist(playlist_id):
+    sp = g.spotipy
+    username = get_username()
+
+    result = sp.user_playlist(username, playlist_id)
+    playlist = {
+        'name': result['name'],
+        'description': result['description'],
+        'tracks': []
+    }
+
+    for item in result['tracks']['items']:
+        track = item['track']
+        playlist['tracks'].append({
+            'artists': track['artists'],
+            'name': track['name']
+        })
+
+    return playlist

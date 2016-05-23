@@ -3,6 +3,7 @@
   <h2>Playlists</h1>
   <ul>
   {% for playlist in playlists %}
-    <li>{{ playlist }}</li>
+    <li><a href="{{ url_for('spotify.playlist', id=playlist['id']) }}">{{ playlist['name'] }}</a> - {{ playlist['num_tracks'] }} tracks</li>
   {% endfor %}
+  </ul>
 {% endblock %}

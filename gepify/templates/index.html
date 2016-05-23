@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% block content %}
-  <h1>Index</h1>
-  <a href="/spotify">
+  <h1>Choose a service</h1>
+  <a href="{{ url_for('spotify.index') }}">
     <img src="/static/img/spotify_logo.png" />
   </a>
 {% endblock %}

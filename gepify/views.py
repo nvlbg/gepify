@@ -4,4 +4,4 @@ from . import app
 
 @app.route('/')
 def index():
-    return render_template('index.html', title='Gepify')
+    return render_template('index.html')

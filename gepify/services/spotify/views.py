@@ -5,6 +5,7 @@ from . import models
 from .models import SPOTIFY_CLIENT_ID, SPOTIFY_REDIRECT_URI
 from ..util import get_random_str
 import urllib
+from pprint import pprint
 
 
 @spotify_service.route('/')
@@ -77,4 +78,15 @@ def logout():
 @login_required
 def playlist(id):
     playlist_info = models.get_playlist(id)
-    return render_template('show_tracks.html', playlist=playlist_info)
+    youtube_ids = models.get_youtube_ids(playlist_info['tracks'])
+    return render_template('show_tracks.html', playlist=playlist_info,
+                           youtube_ids=youtube_ids)
+
+@spotify_service.route('/download_playlist/<id>')
+@login_required
+def download_playlist(id):
+    playlist_info = models.get_playlist(id)
+    youtube_ids = models.get_youtube_ids(playlist_info['tracks'])
+    pprint(models.download_songs(youtube_ids.values()))
+    return render_template('show_tracks.html', playlist=playlist_info,
+                           youtube_ids=youtube_ids)

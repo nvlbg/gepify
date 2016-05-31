@@ -5,8 +5,10 @@
   <h3>{{ playlist['description'] }}</h3>
   {% endif %}
   <ul>
-  {% for track in playlist['tracks'] %}
-    <li>{{ track['artists'][0]['name'] }} - {{ track['name'] }}</li>
+  {% for track, id in youtube_ids.items() %}
+    <li><a href="https://www.youtube.com/watch?v={{ id }}">{{ track }}</a></li>
   {% endfor %}
   </ul>
+
+  <a href="{{ url_for('spotify.download_playlist', id=playlist['id']) }}">Download</a>
 {% endblock %}

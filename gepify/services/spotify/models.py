@@ -1,4 +1,5 @@
 from flask import session, g
+from gepify.providers import youtube
 import os
 import base64
 import requests
@@ -76,6 +77,7 @@ def get_playlist(playlist_id):
 
     result = sp.user_playlist(username, playlist_id)
     playlist = {
+        'id': playlist_id,
         'name': result['name'],
         'description': result['description'],
         'tracks': []
@@ -89,3 +91,15 @@ def get_playlist(playlist_id):
         })
 
     return playlist
+
+
+def get_youtube_ids(tracks):
+    tracks_q = []
+    for track in tracks:
+        tracks_q.append('{} - {}'.format(
+            track['artists'][0]['name'], track['name']))
+    return youtube.get_song_ids(tracks_q)
+
+
+def download_songs(ids):
+    return youtube.download_songs(ids)

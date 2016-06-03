@@ -72,4 +72,4 @@ def logout():
     session.pop('spotify_expires_at', None)
     session.pop('spotify_username', None)
 
-    return redirect(url_for('index'))
+    return redirect(url_for('views.index'))

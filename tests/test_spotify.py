@@ -40,18 +40,20 @@ class ProfileMixin():
 
     def logout(self):
         logout_response = self.client.get(url_for('spotify.logout'))
-        self.assertRedirects(logout_response, url_for('index'))
+        self.assertRedirects(logout_response, url_for('views.index'))
         return logout_response
 
 
 @mock.patch('requests.post', side_effect=mocked_spotify_api)
 class SpotifyDecoratorsTestCase(TestCase, ProfileMixin):
     def create_app(self):
-        gepify.app.config['TESTING'] = True
-        return gepify.app
+        self.app = gepify.create_app()
+        self.app.config['TESTING'] = True
+        self.app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
+        return self.app
 
     def setUp(self):
-        self.client = gepify.app.test_client()
+        self.client = self.app.test_client()
 
     def test_login_required_decorator(self, post):
         @self.app.route('/test')
@@ -73,16 +75,40 @@ class SpotifyDecoratorsTestCase(TestCase, ProfileMixin):
         response = self.client.get('/test')
         self.assertRedirects(response, url_for('spotify.login'))
 
+    def test_logout_required_decorator(self, post):
+        @self.app.route('/test')
+        @spotify.view_decorators.logout_required
+        def test():
+            return 'You should be logged out to read this'
+
+        response = self.client.get('/test')
+        self.assert200(response)
+        self.assertIn(b'You should be logged out to read this', response.data)
+
+        login_response = self.login()
+
+        # TODO
+        # self.assertRedirects(response, url_for('spotify.login'))
+        # response = self.client.get('/test')
+        # self.assertRedirects(response, url_for('spotify.login'))
+
+        self.logout()
+
+        response = self.client.get('/test')
+        self.assert200(response)
+        self.assertIn(b'You should be logged out to read this', response.data)
+
 
 @mock.patch('requests.post', side_effect=mocked_spotify_api)
 class SpotifyTestCase(TestCase, ProfileMixin):
     def create_app(self):
-        gepify.app.config['TESTING'] = True
-        gepify.app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
-        return gepify.app
+        self.app = gepify.create_app()
+        self.app.config['TESTING'] = True
+        self.app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
+        return self.app
 
     def setUp(self):
-        self.client = gepify.app.test_client()
+        self.client = self.app.test_client()
 
     def test_index_if_not_logged_in(self, post):
         response = self.client.get(url_for('spotify.index'))

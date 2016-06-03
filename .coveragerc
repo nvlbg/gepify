@@ -1,0 +1,7 @@
+[run]
+omit =
+    */.virtualenvs/*
+
+include =
+    gepify/*
+    tests/*

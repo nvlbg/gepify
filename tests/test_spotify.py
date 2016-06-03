@@ -24,6 +24,31 @@ def mocked_spotify_api(*args, **kwargs):
         }, 200)
 
 
+class MockSpotipy:
+    def __init__(self, auth=None):
+        self.auth = auth
+
+    def me(self):
+        return {
+            'id': 'test_user'
+        }
+
+    def user_playlists(self, username):
+        return {
+            'items': [
+                {'name': 'Playlist 1'},
+                {'name': 'Playlist 2'}
+            ]
+        }
+
+    def current_user_saved_albums(self):
+        return {
+            'items': [
+                {'album': {'name': 'Album 1'}}
+            ]
+        }
+
+
 class ProfileMixin():
     def login(self):
         login_response = self.client.get(url_for('spotify.login'))
@@ -114,8 +139,10 @@ class SpotifyTestCase(TestCase, ProfileMixin):
         response = self.client.get(url_for('spotify.index'))
         self.assertRedirects(response, url_for('spotify.login'))
 
-    # def test_index_if_logged_in(self, post):
-    #     self.login()
-    #     response = self.client.get(url_for('spotify.index'))
-    #     print(response.data)
-    #     pass
+    def test_index_if_logged_in(self, post):
+        self.login()
+        response = self.client.get(url_for('spotify.index'))
+        self.assert200(response)
+        self.assertIn(b'Playlist 1', response.data)
+        self.assertIn(b'Playlist 2', response.data)
+        self.assertIn(b'Album 1', response.data)

@@ -1,2 +1,6 @@
 __pycache__/*
 *.pyc
+
+# coverage files
+.coverage
+htmlcov/*

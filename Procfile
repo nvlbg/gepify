@@ -1,1 +1,1 @@
-web: gunicorn -b 0.0.0.0:$PORT gepify:app
+web: gunicorn -b 0.0.0.0:$PORT runserver:app

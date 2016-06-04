@@ -36,8 +36,8 @@ class MockSpotipy:
     def user_playlists(self, username):
         return {
             'items': [
-                {'name': 'Playlist 1'},
-                {'name': 'Playlist 2'}
+                {'id': '1', 'images': [], 'name': 'Playlist 1', 'tracks': {'total': 10}},
+                {'id': '2', 'images': [], 'name': 'Playlist 2', 'tracks': {'total': 20}},
             ]
         }
 
@@ -145,4 +145,3 @@ class SpotifyTestCase(TestCase, ProfileMixin):
         self.assert200(response)
         self.assertIn(b'Playlist 1', response.data)
         self.assertIn(b'Playlist 2', response.data)
-        self.assertIn(b'Album 1', response.data)

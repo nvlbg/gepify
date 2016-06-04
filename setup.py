@@ -6,6 +6,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'Flask>=0.10.1',
+        'Flask-Testing>=0.4.2',
         'google-api-python-client>=1.5.0',
         'spotipy>=2.3.8',
         'youtube-dl>=2016.5.10'

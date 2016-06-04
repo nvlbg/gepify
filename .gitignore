@@ -1,3 +1,7 @@
 __pycache__/*
 songs/*
 *.pyc
+
+# coverage files
+.coverage
+htmlcov/*

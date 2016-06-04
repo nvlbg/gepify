@@ -1,4 +1,4 @@
-from flask import session, redirect, url_for, g
+from flask import session, redirect, url_for, g, current_app
 from .models import request_access_token
 import time
 import spotipy
@@ -29,7 +29,11 @@ def login_required(f):
                 # TODO
                 raise
 
-        g.spotipy = spotipy.Spotify(auth=access_token)
+        if current_app.config['TESTING']:
+            from tests.test_spotify import MockSpotipy
+            g.spotipy = MockSpotipy(auth=access_token)
+        else:
+            g.spotipy = spotipy.Spotify(auth=access_token)
         return f(*args, **kwargs)
     return decorated_function
 

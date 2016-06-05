@@ -15,13 +15,37 @@ class MockResponse:
         self.status_code = status_code
 
 
-def mocked_spotify_api(*args, **kwargs):
-    if args[0] == 'https://accounts.spotify.com/api/token':
-        return MockResponse({
-            'access_token': 'dummy code',
-            'refresh_token': 'refresh me',
-            'expires_in': 60
-        }, 200)
+def mocked_spotify_api_post(*args, **kwargs):
+    url = args[0]
+    data = kwargs.get('data', None)
+    headers = kwargs.get('headers', None)
+
+    if url == 'https://accounts.spotify.com/api/token':
+        assert 'Authorization' in headers
+        assert headers['Authorization'].startswith('Basic')
+        assert 'grant_type' in data
+        assert data['grant_type'] in ['authorization_code', 'refresh_token']
+
+        if data['grant_type'] == 'authorization_code':
+            assert 'code' in data
+            assert 'redirect_uri' in data
+
+            return MockResponse({
+                'access_token': 'dummy code',
+                'refresh_token': 'refresh me',
+                'expires_in': 60
+            }, 200)
+        else:
+            assert 'refresh_token' in data
+            assert data['refresh_token'] == 'refresh me'
+
+            return MockResponse({
+                'access_token': 'new dummy code',
+                'refresh_token': 'refresh me again',
+                'expires_in': 60
+            }, 200)
+
+    return MockResponse({}, 404)
 
 
 class MockSpotipy:
@@ -69,7 +93,7 @@ class ProfileMixin():
         return logout_response
 
 
-@mock.patch('requests.post', side_effect=mocked_spotify_api)
+@mock.patch('requests.post', side_effect=mocked_spotify_api_post)
 class SpotifyDecoratorsTestCase(TestCase, ProfileMixin):
     def create_app(self):
         self.app = gepify.create_app()
@@ -100,6 +124,30 @@ class SpotifyDecoratorsTestCase(TestCase, ProfileMixin):
         response = self.client.get('/test')
         self.assertRedirects(response, url_for('spotify.login'))
 
+    def test_login_required_if_spotify_session_has_expired(self, post):
+        @self.app.route('/test')
+        @spotify.view_decorators.login_required
+        def test():
+            return 'You should be logged in to read this'
+
+        with self.client as client:
+            self.login()
+
+            old_token = session['spotify_access_token']
+            old_refresh_token = session['spotify_refresh_token']
+
+            with client.session_transaction() as sess:
+                sess['spotify_expires_at'] = -1
+
+            response = self.client.get('/test')
+            new_token = session['spotify_access_token']
+            new_refresh_token = session['spotify_refresh_token']
+
+            self.assertEqual(old_token, 'dummy code')
+            self.assertEqual(old_refresh_token, 'refresh me')
+            self.assertEqual(new_token, 'new dummy code')
+            self.assertEqual(new_refresh_token, 'refresh me again')
+
     def test_logout_required_decorator(self, post):
         @self.app.route('/test')
         @spotify.view_decorators.logout_required
@@ -124,7 +172,7 @@ class SpotifyDecoratorsTestCase(TestCase, ProfileMixin):
         self.assertIn(b'You should be logged out to read this', response.data)
 
 
-@mock.patch('requests.post', side_effect=mocked_spotify_api)
+@mock.patch('requests.post', side_effect=mocked_spotify_api_post)
 class SpotifyTestCase(TestCase, ProfileMixin):
     def create_app(self):
         self.app = gepify.create_app()

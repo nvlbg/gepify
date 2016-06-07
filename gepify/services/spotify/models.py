@@ -1,5 +1,6 @@
 from flask import session, g
-from gepify.providers import youtube
+import gepify.providers as providers
+from werkzeug.contrib.cache import RedisCache
 import os
 import base64
 import requests
@@ -11,6 +12,8 @@ SPOTIFY_CLIENT_SECRET = os.environ.get('SPOTIFY_CLIENT_SECRET')
 SPOTIFY_REDIRECT_URI = os.environ.get('SPOTIFY_REDIRECT_URI')
 SPOTIFY_AUTHORIZATION_DATA = base64.b64encode(bytes(
     SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET, 'utf-8')).decode('utf-8')
+
+cache = RedisCache(key_prefix='spotify_')
 
 
 def request_access_token(payload):
@@ -46,60 +49,57 @@ def get_username():
     return username
 
 
+def get_song_name(track):
+    return '{} - {}'.format(
+        ' & '.join([artist['name'] for artist in track['artists']]),
+        track['name'])
+
+
 def get_playlists():
-    sp = g.spotipy
     username = get_username()
 
-    results = sp.user_playlists(username)
+    playlists = cache.get('user_playlists_{}'.format(username))
+    if playlists is None:
+        playlists = []
+        sp = g.spotipy
+        results = sp.user_playlists(username)
 
-    playlists = []
+        for item in results['items']:
+            playlist = {
+                'id': item['id'],
+                'images': item['images'],
+                'name': item['name'],
+                'num_tracks': item['tracks']['total']
+            }
+            playlists.append(playlist)
 
-    for item in results['items']:
-        playlist = {
-            'id': item['id'],
-            'images': item['images'],
-            'name': item['name'],
-            'num_tracks': item['tracks']['total']
-        }
-        playlists.append(playlist)
+        # results = sp.current_user_saved_albums()['items']
 
-    # results = sp.current_user_saved_albums()['items']
-
-    # for item in results:
-    #     playlists.append(item['album']['name'])
+        # for item in results:
+        #     playlists.append(item['album']['name'])
+        cache.set('user_playlists_{}'.format(username), playlists, timeout=5*60)
 
     return playlists
 
 
 def get_playlist(playlist_id):
-    sp = g.spotipy
     username = get_username()
 
-    result = sp.user_playlist(username, playlist_id)
-    playlist = {
-        'id': playlist_id,
-        'name': result['name'],
-        'description': result['description'],
-        'tracks': []
-    }
+    playlist = cache.get('user_playlist_{}'.format(playlist_id))
+    if playlist is None:
+        sp = g.spotipy
+        result = sp.user_playlist(username, playlist_id)
+        playlist = {
+            'id': playlist_id,
+            'name': result['name'],
+            'description': result['description'],
+            'tracks': []
+        }
 
-    for item in result['tracks']['items']:
-        track = item['track']
-        playlist['tracks'].append({
-            'artists': track['artists'],
-            'name': track['name']
-        })
+        for item in result['tracks']['items']:
+            track = item['track']
+            playlist['tracks'].append(providers.get_song(get_song_name(track)))
+
+        cache.set('user_playlist_{}'.format(playlist_id), playlist, timeout=5*60)
 
     return playlist
-
-
-def get_youtube_ids(tracks):
-    tracks_q = []
-    for track in tracks:
-        tracks_q.append('{} - {}'.format(
-            track['artists'][0]['name'], track['name']))
-    return youtube.get_song_ids(tracks_q)
-
-
-def download_songs(ids):
-    return youtube.download_songs(ids)

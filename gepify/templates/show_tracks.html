@@ -10,7 +10,7 @@
       {{ track['name'] }}
       <span class="pull-right">
       {% for format in SUPPORTED_FORMATS %}
-        <a href="{{ url_for('spotify.download_song', format=format, song=track['name']) }}"
+        <a href="{{ url_for('spotify.download_song', format=format, song_name=track['name']) }}"
            class="label {{ 'label-success' if format in track['files'].keys() else 'label-default' }}">
           {{ format }}
         </a>

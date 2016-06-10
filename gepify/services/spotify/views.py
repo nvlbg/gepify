@@ -5,7 +5,8 @@ from . import models
 from .models import SPOTIFY_CLIENT_ID, SPOTIFY_REDIRECT_URI
 from ..util import get_random_str
 import urllib
-from gepify.providers import SUPPORTED_FORMATS
+import gepify.providers.songs as songs
+from gepify.providers.songs import SUPPORTED_FORMATS
 from pprint import pprint
 
 
@@ -81,7 +82,6 @@ def logout():
 @login_required
 def playlist(id):
     playlist = models.get_playlist(id)
-    print(len(SUPPORTED_FORMATS))
     return render_template('show_tracks.html',
                            playlist=playlist,
                            SUPPORTED_FORMATS=SUPPORTED_FORMATS)
@@ -92,7 +92,15 @@ def download_playlist():
     pass
 
 
-@spotify_service.route('/download_song/<song>/<format>')
+@spotify_service.route('/download_song/<song_name>/<format>')
 @login_required
-def download_song(song, format):
-    pass
+def download_song(song_name, format):
+    if format not in SUPPORTED_FORMATS:
+        # TODO
+        return 'Unsupported format'
+
+    if not songs.has_song_format(song_name, format):
+        songs.download_song.delay(song_name, format=format)
+        return 'downloading...'
+
+    return songs.get_song(song_name)['files'][format]

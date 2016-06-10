@@ -1,5 +1,5 @@
 from flask import session, g
-import gepify.providers as providers
+import gepify.providers.songs as songs
 from werkzeug.contrib.cache import RedisCache
 import os
 import base64
@@ -98,8 +98,14 @@ def get_playlist(playlist_id):
 
         for item in result['tracks']['items']:
             track = item['track']
-            playlist['tracks'].append(providers.get_song(get_song_name(track)))
+            playlist['tracks'].append(get_song_name(track))
 
         cache.set('user_playlist_{}'.format(playlist_id), playlist, timeout=5*60)
+
+    # get latest info about the tracks from cache in case a song's files have changed
+    tracks = []
+    for track in playlist['tracks']:
+        tracks.append(songs.get_song(track))
+    playlist['tracks'] = tracks
 
     return playlist

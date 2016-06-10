@@ -77,7 +77,8 @@ def get_playlists():
 
         # for item in results:
         #     playlists.append(item['album']['name'])
-        cache.set('user_playlists_{}'.format(username), playlists, timeout=5*60)
+        cache.set('user_playlists_{}'.format(username),
+                  playlists, timeout=5*60)
 
     return playlists
 
@@ -100,9 +101,11 @@ def get_playlist(playlist_id):
             track = item['track']
             playlist['tracks'].append(get_song_name(track))
 
-        cache.set('user_playlist_{}'.format(playlist_id), playlist, timeout=5*60)
+        cache.set('user_playlist_{}'.format(playlist_id),
+                  playlist, timeout=5*60)
 
-    # get latest info about the tracks from cache in case a song's files have changed
+    # get latest info about the tracks from cache
+    # in case a song's files have changed
     tracks = []
     for track in playlist['tracks']:
         tracks.append(songs.get_song(track))

@@ -22,7 +22,7 @@ def get_song(song_name):
 
 def add_song_file(song_name, file, format):
     if format not in SUPPORTED_FORMATS:
-        #TODO
+        # TODO
         pass
 
     song = get_song(song_name)
@@ -42,7 +42,7 @@ def has_song_format(song_name, format):
 @celery_app.task
 def download_song(song_name, provider='youtube', format='mp3'):
     if format not in SUPPORTED_FORMATS:
-        #TODO
+        # TODO
         pass
 
     song = get_song(song_name)
@@ -60,4 +60,4 @@ def download_song(song_name, provider='youtube', format='mp3'):
     else:
         del song['files'][format]
         cache.set(song_name, song)
-        #TODO: throw some exception
+        # TODO: throw some exception

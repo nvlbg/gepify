@@ -86,6 +86,7 @@ def playlist(id):
                            playlist=playlist,
                            SUPPORTED_FORMATS=SUPPORTED_FORMATS)
 
+
 @spotify_service.route('/download_playlist', methods=['POST'])
 @login_required
 def download_playlist():

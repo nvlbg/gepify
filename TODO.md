@@ -9,3 +9,4 @@ TODO
 - [ ] option to download whole playlist in a .zip
 - [x] option to choose preffered file format
 - [ ] logging
+- [ ] write some documentation - how to start the app, etc.

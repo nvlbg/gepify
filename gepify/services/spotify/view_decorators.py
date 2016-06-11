@@ -1,4 +1,4 @@
-from flask import session, redirect, url_for, g, current_app
+from flask import session, redirect, url_for, g, render_template
 from .models import request_access_token
 import time
 import spotipy
@@ -26,14 +26,11 @@ def login_required(f):
                 request_access_token(payload)
                 access_token = session['spotify_access_token']
             except:
-                # TODO
-                raise
+                return render_template(
+                    'show_message.html',
+                    message='There was an error with authenticating')
 
-        if current_app.config['TESTING']:
-            from tests.test_spotify import MockSpotipy
-            g.spotipy = MockSpotipy(auth=access_token)
-        else:
-            g.spotipy = spotipy.Spotify(auth=access_token)
+        g.spotipy = spotipy.Spotify(auth=access_token)
         return f(*args, **kwargs)
     return decorated_function
 
@@ -47,8 +44,9 @@ def logout_required(f):
 
         if access_token is not None or \
                 refresh_token is not None or expires_at is not None:
-            # TODO
-            pass
+            return render_template(
+                'show_message.html',
+                message='You need to be logged out to see this page')
 
         return f(*args, **kwargs)
     return decorated_function

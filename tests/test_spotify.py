@@ -119,6 +119,13 @@ class SpotifyDecoratorsTestCase(TestCase, ProfileMixin):
         self.assert200(response)
         self.assertIn(b'You should be logged in to read this', response.data)
 
+        with self.client.session_transaction() as sess:
+            sess['spotify_refresh_token'] = 'false token'
+            sess['spotify_expires_at'] = -1
+
+        response = self.client.get('/test')
+        self.assertIn(b'There was an error with authenticating', response.data)
+
         self.logout()
 
         response = self.client.get('/test')
@@ -160,10 +167,8 @@ class SpotifyDecoratorsTestCase(TestCase, ProfileMixin):
 
         login_response = self.login()
 
-        # TODO
-        # self.assertRedirects(response, url_for('spotify.login'))
-        # response = self.client.get('/test')
-        # self.assertRedirects(response, url_for('spotify.login'))
+        response = self.client.get('/test')
+        self.assertIn(b'You need to be logged out to see this page', response.data)
 
         self.logout()
 
@@ -176,7 +181,7 @@ class SpotifyDecoratorsTestCase(TestCase, ProfileMixin):
 class SpotifyTestCase(TestCase, ProfileMixin):
     def create_app(self):
         self.app = gepify.create_app()
-        self.app.config['TESTING'] = True
+        self.app.config['TESTING'] = False
         self.app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
         return self.app
 
@@ -187,7 +192,8 @@ class SpotifyTestCase(TestCase, ProfileMixin):
         response = self.client.get(url_for('spotify.index'))
         self.assertRedirects(response, url_for('spotify.login'))
 
-    def test_index_if_logged_in(self, post):
+    @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
+    def test_index_if_logged_in(self, post, Spotify):
         self.login()
         response = self.client.get(url_for('spotify.index'))
         self.assert200(response)

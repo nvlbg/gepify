@@ -1,12 +1,12 @@
 from . import spotify_service
-from flask import session, render_template, redirect, request, url_for
+from flask import session, render_template, redirect, request, url_for, send_file
 from .view_decorators import login_required, logout_required
 from . import models
 from .models import SPOTIFY_CLIENT_ID, SPOTIFY_REDIRECT_URI
 from ..util import get_random_str
 import urllib
 import gepify.providers.songs as songs
-from gepify.providers.songs import SUPPORTED_FORMATS
+from gepify.providers.songs import SUPPORTED_FORMATS, MIMETYPES
 from pprint import pprint
 
 
@@ -102,6 +102,14 @@ def download_song(song_name, format):
 
     if not songs.has_song_format(song_name, format):
         songs.download_song.delay(song_name, format=format)
-        return 'downloading...'
+        return render_template(
+            'show_message.html', refresh_after=30,
+            message='Your song has started downloading.'\
+                    'This page will automatically refresh after 30 seconds.')
 
-    return songs.get_song(song_name)['files'][format]
+    song = songs.get_song(song_name)
+    return send_file(
+        "../" + song['files'][format],
+        as_attachment=True,
+        attachment_filename=song['name'],
+        mimetype=MIMETYPES[format])

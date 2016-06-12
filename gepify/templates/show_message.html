@@ -1,5 +1,11 @@
 {% extends "layout.html" %}
 
+{% block head %}
+    {% if refresh_after %}
+        <meta http-equiv="refresh" content="{{ refresh_after }}" />
+    {% endif %}
+{% endblock %}
+
 {% block content %}
   <h1>{{ message }}</h1>
 {% endblock %}

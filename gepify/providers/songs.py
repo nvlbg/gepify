@@ -3,8 +3,11 @@ from gepify.celery import celery_app
 from . import youtube
 
 SUPPORTED_FORMATS = ['mp3']
+MIMETYPES = {
+    'mp3': 'audio/mpeg'
+}
 
-cache = RedisCache(key_prefix='song_info_')
+cache = RedisCache(key_prefix='song_info_', default_timeout=0)
 
 
 def get_song(song_name):

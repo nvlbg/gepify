@@ -10,3 +10,4 @@ TODO
 - [x] option to choose preffered file format
 - [ ] logging
 - [ ] write some documentation - how to start the app, etc.
+- [ ] add option to download in aac format

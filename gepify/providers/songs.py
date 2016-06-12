@@ -2,9 +2,10 @@ from werkzeug.contrib.cache import RedisCache
 from gepify.celery import celery_app
 from . import youtube
 
-SUPPORTED_FORMATS = ['mp3']
+SUPPORTED_FORMATS = ['mp3', 'ogg']
 MIMETYPES = {
-    'mp3': 'audio/mpeg'
+    'mp3': 'audio/mpeg',
+    'ogg': 'audio/ogg'
 }
 
 cache = RedisCache(key_prefix='song_info_', default_timeout=0)
@@ -58,7 +59,7 @@ def download_song(song_name, provider='youtube', format='mp3'):
 
     if provider == 'youtube':
         song_id = youtube.get_song_id(song_name)
-        youtube.download_song(song_id)
+        youtube.download_song(song_id, format)
         add_song_file(song_name, 'songs/{}.{}'.format(song_id, format), format)
     else:
         del song['files'][format]

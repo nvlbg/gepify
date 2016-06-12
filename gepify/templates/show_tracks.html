@@ -22,12 +22,13 @@
 
   <h3>Download playlist</h3>
   <form action="{{ url_for('spotify.download_playlist') }}" method="POST">
-    <select class="form-control">
-      <option value="" selected disabled>Please select file format</option>
+    <select name="format" class="form-control">
       {% for format in SUPPORTED_FORMATS %}
         <option value="{{ format }}">{{ format }}</option>
       {% endfor %}
     </select>
+
+    <input type="hidden" name="playlist_id" value="{{ playlist['id'] }}">
 
     <button type="submit" class="btn btn-default">
       <span class="glyphicon glyphicon-floppy-save" aria-hidden="true"></span>

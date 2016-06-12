@@ -7,14 +7,25 @@ DEVELOPER_KEY = os.environ.get('YOUTUBE_DEVELOPER_KEY')
 YOUTUBE_API_SERVICE_NAME = "youtube"
 YOUTUBE_API_VERSION = "v3"
 
-ydl_opts = {
-    'format': 'bestaudio/best',
-    'outtmpl': 'songs/%(id)s.%(ext)s',
-    'postprocessors': [{
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': 'mp3',
-        'preferredquality': '192',
-    }],
+downloaders = {
+    'mp3': youtube_dl.YoutubeDL({
+        'format': 'bestaudio/best',
+        'outtmpl': 'songs/%(id)s.%(ext)s',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+    }),
+    'ogg': youtube_dl.YoutubeDL({
+        'format': 'bestaudio/best',
+        'outtmpl': 'songs/%(id)s.%(ext)s',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'vorbis',
+            'preferredquality': '192',
+        }],
+    }),
 }
 
 
@@ -39,10 +50,10 @@ def get_song_ids(tracks):
     return {track: get_song_id(track) for track in tracks}
 
 
-def download_song(id):
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+def download_song(id, format):
+    with downloaders[format] as ydl:
         return ydl.download(['http://www.youtube.com/watch?v=' + id])
 
 
-def download_songs(ids):
-    return {id: download_song(id) for id in ids}
+def download_songs(ids, format):
+    return {id: download_song(id, format) for id in ids}

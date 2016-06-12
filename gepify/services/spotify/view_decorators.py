@@ -28,7 +28,7 @@ def login_required(f):
             except:
                 return render_template(
                     'show_message.html',
-                    message='There was an error with authenticating')
+                    message='There was an error with authenticating'), 503
 
         g.spotipy = spotipy.Spotify(auth=access_token)
         return f(*args, **kwargs)
@@ -46,7 +46,7 @@ def logout_required(f):
                 refresh_token is not None or expires_at is not None:
             return render_template(
                 'show_message.html',
-                message='You need to be logged out to see this page')
+                message='You need to be logged out to see this page'), 403
 
         return f(*args, **kwargs)
     return decorated_function

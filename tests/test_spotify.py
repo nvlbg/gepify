@@ -124,6 +124,7 @@ class SpotifyDecoratorsTestCase(TestCase, ProfileMixin):
             sess['spotify_expires_at'] = -1
 
         response = self.client.get('/test')
+        self.assertEqual(response.status_code, 503)
         self.assertIn(b'There was an error with authenticating', response.data)
 
         self.logout()
@@ -168,6 +169,7 @@ class SpotifyDecoratorsTestCase(TestCase, ProfileMixin):
         login_response = self.login()
 
         response = self.client.get('/test')
+        self.assert403(response)
         self.assertIn(b'You need to be logged out to see this page', response.data)
 
         self.logout()

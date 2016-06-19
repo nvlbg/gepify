@@ -1,4 +1,4 @@
-Gepify
+Gepify [![Build Status](https://travis-ci.org/nvlbg/gepify.svg?branch=master)](https://travis-ci.org/nvlbg/gepify)
 ======
 
 ### Download your online playlists

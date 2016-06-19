@@ -47,7 +47,7 @@ def has_song_format(song_name, format):
 def download_song(song_name, provider='youtube', format='mp3'):
     if format not in SUPPORTED_FORMATS:
         # TODO
-        pass
+        return
 
     song = get_song(song_name)
 

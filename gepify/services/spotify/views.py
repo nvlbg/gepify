@@ -1,11 +1,13 @@
 from . import spotify_service
-from flask import session, render_template, redirect, request, url_for, send_file
+from flask import (
+    session, render_template, redirect, request, url_for, send_file
+)
 from .view_decorators import login_required, logout_required
 from . import models
 from .models import SPOTIFY_CLIENT_ID, SPOTIFY_REDIRECT_URI
 from ..util import get_random_str
 import urllib
-import gepify.providers.songs as songs
+from gepify.providers import songs, playlists
 from gepify.providers.songs import SUPPORTED_FORMATS, MIMETYPES
 from pprint import pprint
 
@@ -90,7 +92,27 @@ def playlist(id):
 @spotify_service.route('/download_playlist', methods=['POST'])
 @login_required
 def download_playlist():
-    pass
+    playlist_id = request.form['playlist_id']
+    format = request.form['format']
+
+    if format not in SUPPORTED_FORMATS:
+        # TODO
+        return 'Unsupported format'
+
+    if playlists.has_playlist('spotify', playlist_id, format):
+        playlist = playlists.get_playlist('spotify', playlist_id, format)
+        playlist_name = models.get_playlist_name(playlist_id)
+        return send_file(
+            '../' + playlist,
+            as_attachment=True,
+            attachment_filename='{}.zip'.format(playlist_name),
+            mimetype='application/zip'
+        )
+
+    playlist = models.get_playlist(playlist_id, keep_song_names=True)
+    playlists.download_playlist.delay(playlist, 'spotify', format=format)
+    return render_template('show_message.html',
+                           message='Your playlist is getting downloaded')
 
 
 @spotify_service.route('/download_song/<song_name>/<format>')
@@ -104,12 +126,12 @@ def download_song(song_name, format):
         songs.download_song.delay(song_name, format=format)
         return render_template(
             'show_message.html', refresh_after=30,
-            message='Your song has started downloading.'\
+            message='Your song has started downloading.'
                     'This page will automatically refresh after 30 seconds.')
 
     song = songs.get_song(song_name)
     return send_file(
-        "../" + song['files'][format],
+        '../' + song['files'][format],
         as_attachment=True,
         attachment_filename=song['name'],
         mimetype=MIMETYPES[format])

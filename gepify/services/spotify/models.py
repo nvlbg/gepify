@@ -83,7 +83,7 @@ def get_playlists():
     return playlists
 
 
-def get_playlist(playlist_id):
+def get_playlist(playlist_id, keep_song_names=False):
     username = get_username()
 
     playlist = cache.get('user_playlist_{}'.format(playlist_id))
@@ -106,9 +106,20 @@ def get_playlist(playlist_id):
 
     # get latest info about the tracks from cache
     # in case a song's files have changed
-    tracks = []
-    for track in playlist['tracks']:
-        tracks.append(songs.get_song(track))
-    playlist['tracks'] = tracks
+    if not keep_song_names:
+        tracks = []
+        for track in playlist['tracks']:
+            tracks.append(songs.get_song(track))
+        playlist['tracks'] = tracks
 
     return playlist
+
+
+def get_playlist_name(playlist_id):
+    username = get_username()
+
+    playlist = cache.get('user_playlist_{}'.format(playlist_id))
+    if playlist is None:
+        playlist = get_playlist(playlist_id, keep_song_names=True)
+
+    return playlist['name']

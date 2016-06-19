@@ -3,7 +3,7 @@ TODO
 
 - [ ] Continious integration (with travis-ci)
 - [ ] Organize tests into modules
-- [ ] fix requirements.txt and setup.py requirements
+- [x] fix requirements.txt and setup.py requirements
 - [x] cache downloaded songs in a database (Redis)
 - [x] option to download individual song from playlist
 - [z] option to download whole playlist in a .zip

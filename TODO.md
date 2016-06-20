@@ -1,7 +1,7 @@
 TODO
 ====
 
-- [ ] Continious integration (with travis-ci)
+- [x] Continious integration (with travis-ci)
 - [ ] Organize tests into modules
 - [x] fix requirements.txt and setup.py requirements
 - [x] cache downloaded songs in a database (Redis)

@@ -199,7 +199,5 @@ class SpotifyTestCase(TestCase, ProfileMixin):
         self.login()
         response = self.client.get(url_for('spotify.index'))
         self.assert200(response)
-        pprint(response)
-        pprint(response.data)
         self.assertIn(b'Playlist 1', response.data)
         self.assertIn(b'Playlist 2', response.data)

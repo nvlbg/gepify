@@ -14,3 +14,5 @@ env:
   - SPOTIFY_REDIRECT_URI='http://localhost:5000/spotify/callback'
   - CELERY_BACKEND='redis://localhost'
   - CELERY_BROKER_URL='amqp://localhost'
+services:
+  - redis-server

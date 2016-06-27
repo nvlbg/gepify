@@ -1,7 +1,9 @@
 import gepify
 import requests
-from flask.ext.testing import TestCase
-from flask import url_for, session
+from . import GepifyTestCase
+from flask import url_for, session, g
+import spotipy
+from werkzeug.contrib.cache import NullCache
 from urllib import parse
 from pprint import pprint
 from unittest import mock
@@ -94,16 +96,7 @@ class ProfileMixin():
 
 
 @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
-class SpotifyDecoratorsTestCase(TestCase, ProfileMixin):
-    def create_app(self):
-        self.app = gepify.create_app()
-        self.app.config['TESTING'] = True
-        self.app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
-        return self.app
-
-    def setUp(self):
-        self.client = self.app.test_client()
-
+class SpotifyDecoratorsTestCase(GepifyTestCase, ProfileMixin):
     def test_login_required_decorator(self, post):
         @self.app.route('/test')
         @spotify.view_decorators.login_required
@@ -179,17 +172,118 @@ class SpotifyDecoratorsTestCase(TestCase, ProfileMixin):
         self.assertIn(b'You should be logged out to read this', response.data)
 
 
-@mock.patch('requests.post', side_effect=mocked_spotify_api_post)
-class SpotifyTestCase(TestCase, ProfileMixin):
-    def create_app(self):
-        self.app = gepify.create_app()
-        self.app.config['TESTING'] = False
-        self.app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
-        return self.app
-
+class SpotifyModelsTestCase(GepifyTestCase):
     def setUp(self):
-        self.client = self.app.test_client()
+        spotify.models.cache = NullCache()
+        g.spotipy = mock.Mock(spec=spotipy.Spotify)
+        g.spotipy.me = mock.MagicMock(name='me')
+        g.spotipy.me.return_value = {'id': 'test_user'}
+        g.spotipy.user_playlists = mock.MagicMock(name='user_playlists')
+        g.spotipy.user_playlists.return_value = {
+            'items': [
+                {'id': '1', 'images': [], 'name': 'Playlist 1', 'tracks': {'total': 10}},
+                {'id': '2', 'images': [], 'name': 'Playlist 2', 'tracks': {'total': 20}},
+            ]
+        }
+        g.spotipy.user_playlist = mock.MagicMock(name='user_playlist')
+        g.spotipy.user_playlist.return_value = {
+            'name': 'Playlist 1',
+            'description': 'desc',
+            'tracks': {
+                'items': [
+                    {'track':
+                        {'name': 'Song 1', 'artists': [{'name': 'Artist 1'}]}},
+                    {'track':
+                        {'name': 'Song 2', 'artists': [{'name': 'Artist 2'}]}}
+                ]
+            }
+        }
 
+    def tearDown(self):
+        g.spotipy = None
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    def test_request_access_token_with_authorization_code_request(self, post):
+        payload = {
+            'grant_type': 'authorization_code',
+            'code': '',
+            'redirect_uri': ''
+        }
+
+        session['spotify_access_token'] = 'some random test token'
+        session['spotify_refresh_token'] = 'some random refresh token'
+        self.assertNotIn('spotify_expires_at', session)
+        spotify.models.request_access_token(payload)
+        self.assertEqual(post.call_count, 1)
+        self.assertEqual(session['spotify_access_token'], 'dummy code')
+        self.assertEqual(session['spotify_refresh_token'], 'refresh me')
+        self.assertIn('spotify_expires_at', session)
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    def test_request_access_token_with_refresh_token_request(self, post):
+        payload = {
+            'grant_type': 'refresh_token',
+            'refresh_token': 'refresh me'
+        }
+
+        session['spotify_access_token'] = 'some random test token'
+        session['spotify_refresh_token'] = 'some random refresh token'
+        self.assertNotIn('spotify_expires_at', session)
+        spotify.models.request_access_token(payload)
+        self.assertEqual(post.call_count, 1)
+        self.assertEqual(session['spotify_access_token'], 'new dummy code')
+        self.assertEqual(session['spotify_refresh_token'], 'refresh me again')
+        self.assertIn('spotify_expires_at', session)
+
+    def test_get_username(self):
+        self.assertEqual(spotify.models.get_username(), 'test_user')
+        self.assertEqual(g.spotipy.me.call_count, 1)
+        self.assertEqual(spotify.models.get_username(), 'test_user')
+        self.assertEqual(g.spotipy.me.call_count, 1)
+
+    def test_get_song_name(self):
+        track = {
+            'artists': [{'name': 'Artist 1'}, {'name': 'Artist 2'}],
+            'name': 'Track name'
+        }
+        self.assertEqual(spotify.models.get_song_name(track),
+                         'Artist 1 & Artist 2 - Track name')
+
+    def test_get_playlists(self):
+        playlists = spotify.models.get_playlists()
+        self.assertEqual(len(playlists), 2)
+        self.assertEqual(playlists[0]['name'], 'Playlist 1')
+        self.assertEqual(playlists[1]['name'], 'Playlist 2')
+
+    def test_get_playlist_with_keeping_song_names(self):
+        playlist = spotify.models.get_playlist('1', keep_song_names=True)
+        self.assertEqual(playlist['id'], '1')
+        self.assertEqual(playlist['description'], 'desc')
+        self.assertEqual(playlist['name'], 'Playlist 1')
+        self.assertIn('tracks', playlist.keys())
+        self.assertEqual(len(playlist['tracks']), 2)
+        self.assertIn('Artist 1 - Song 1', playlist['tracks'])
+        self.assertIn('Artist 2 - Song 2', playlist['tracks'])
+
+    @mock.patch('gepify.providers.songs.get_song',
+                side_effect=lambda song_name: {'name': song_name})
+    def test_get_playlist_without_keeping_song_names(self, get_song):
+        playlist = spotify.models.get_playlist('1')
+        self.assertEqual(playlist['id'], '1')
+        self.assertEqual(playlist['description'], 'desc')
+        self.assertEqual(playlist['name'], 'Playlist 1')
+        self.assertIn('tracks', playlist.keys())
+        self.assertEqual(len(playlist['tracks']), 2)
+        self.assertEqual(get_song.call_count, 2)
+        self.assertEqual(playlist['tracks'][0]['name'], 'Artist 1 - Song 1')
+        self.assertEqual(playlist['tracks'][1]['name'], 'Artist 2 - Song 2')
+
+    def test_get_playlist_name(self):
+        self.assertEqual(spotify.models.get_playlist_name('1'), 'Playlist 1')
+
+
+@mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
     def test_index_if_not_logged_in(self, post):
         response = self.client.get(url_for('spotify.index'))
         self.assertRedirects(response, url_for('spotify.login'))

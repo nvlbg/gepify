@@ -35,8 +35,7 @@ def request_access_token(payload):
             session['spotify_refresh_token'] = refresh_token
         session['spotify_expires_at'] = expires_at
     else:
-        # TODO
-        raise Exception()
+        raise Exception('Could not get authentication token')
 
 
 def get_username():

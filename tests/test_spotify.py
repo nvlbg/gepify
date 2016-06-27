@@ -9,6 +9,7 @@ from pprint import pprint
 from unittest import mock
 from gepify.services import spotify
 import json
+import os
 
 
 class MockResponse:
@@ -50,6 +51,10 @@ def mocked_spotify_api_post(*args, **kwargs):
     return MockResponse({}, 404)
 
 
+def mocked_spotify_api_404(*args, **kwargs):
+    return MockResponse({}, 404)
+
+
 class MockSpotipy:
     def __init__(self, auth=None):
         self.auth = auth
@@ -66,6 +71,21 @@ class MockSpotipy:
                 {'id': '2', 'images': [], 'name': 'Playlist 2', 'tracks': {'total': 20}},
             ]
         }
+
+    def user_playlist(self, username, playlist_id):
+        if playlist_id == '1':
+            return {
+                'name': 'Playlist 1',
+                'description': 'desc',
+                'tracks': {
+                    'items': [
+                        {'track':
+                            {'name': 'Song 1', 'artists': [{'name': 'Artist 1'}]}},
+                        {'track':
+                            {'name': 'Song 2', 'artists': [{'name': 'Artist 2'}]}}
+                    ]
+                }
+            }
 
     def current_user_saved_albums(self):
         return {
@@ -210,8 +230,9 @@ class SpotifyModelsTestCase(GepifyTestCase):
             'redirect_uri': ''
         }
 
-        session['spotify_access_token'] = 'some random test token'
-        session['spotify_refresh_token'] = 'some random refresh token'
+        with self.client.session_transaction() as sess:
+            sess['spotify_access_token'] = 'some random test token'
+            sess['spotify_refresh_token'] = 'some random refresh token'
         self.assertNotIn('spotify_expires_at', session)
         spotify.models.request_access_token(payload)
         self.assertEqual(post.call_count, 1)
@@ -226,14 +247,26 @@ class SpotifyModelsTestCase(GepifyTestCase):
             'refresh_token': 'refresh me'
         }
 
-        session['spotify_access_token'] = 'some random test token'
-        session['spotify_refresh_token'] = 'some random refresh token'
+        with self.client.session_transaction() as sess:
+            sess['spotify_access_token'] = 'some random test token'
+            sess['spotify_refresh_token'] = 'some random refresh token'
         self.assertNotIn('spotify_expires_at', session)
         spotify.models.request_access_token(payload)
         self.assertEqual(post.call_count, 1)
         self.assertEqual(session['spotify_access_token'], 'new dummy code')
         self.assertEqual(session['spotify_refresh_token'], 'refresh me again')
         self.assertIn('spotify_expires_at', session)
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_404)
+    def test_request_access_token_with_spotify_error(self, post):
+        payload = {
+            'grant_type': 'authorization_code',
+            'code': '',
+            'redirect_uri': ''
+        }
+
+        with self.assertRaises(Exception):
+            spotify.models.request_access_token(payload)
 
     def test_get_username(self):
         self.assertEqual(spotify.models.get_username(), 'test_user')
@@ -282,12 +315,24 @@ class SpotifyModelsTestCase(GepifyTestCase):
         self.assertEqual(spotify.models.get_playlist_name('1'), 'Playlist 1')
 
 
-@mock.patch('requests.post', side_effect=mocked_spotify_api_post)
 class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
+    def setUp(self):
+        spotify.models.cache = NullCache()
+
+    @classmethod
+    def tearDownClass(cls):
+        if os.path.isfile('test song.mp3'):
+            os.remove('test song.mp3')
+
+        if os.path.isfile('playlist.zip'):
+            os.remove('playlist.zip')
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
     def test_index_if_not_logged_in(self, post):
         response = self.client.get(url_for('spotify.index'))
         self.assertRedirects(response, url_for('spotify.login'))
 
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
     @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
     def test_index_if_logged_in(self, post, Spotify):
         self.login()
@@ -295,3 +340,166 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assert200(response)
         self.assertIn(b'Playlist 1', response.data)
         self.assertIn(b'Playlist 2', response.data)
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    def test_login(self, post):
+        response = self.client.get(url_for('spotify.login'))
+        self.assertTrue(response.location.startswith(
+                        'https://accounts.spotify.com/authorize/'))
+        self.login()
+        response = self.client.get(url_for('spotify.login'))
+        self.assertIn(b'You need to be logged out to see this page',
+                      response.data)
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    def test_login_callback(self, post):
+        response = self.client.get(
+            url_for('spotify.callback', error='access_denied'))
+        self.assertEqual(response.status_code, 503)
+        self.assertIn(b'There was an error while trying to authenticate you.'
+                      b'Please, try again.', response.data)
+        self.assertEqual(post.call_count, 0)
+
+        with self.client.session_transaction() as sess:
+            sess['spotify_auth_state'] = 'some state'
+
+        response = self.client.get(
+            url_for('spotify.callback', state='other state', code='123'))
+        self.assertEqual(response.status_code, 503)
+        self.assertIn(b'There was an error while trying to authenticate you.'
+                      b'Please, try again.', response.data)
+        self.assertEqual(post.call_count, 0)
+
+        response = self.client.get(
+            url_for('spotify.callback', state='some state', code='123'))
+        self.assertRedirects(response, url_for('spotify.index'))
+        self.assertEqual(post.call_count, 1)
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_404)
+    def test_login_callback_with_spotify_error(self, post):
+        with self.client.session_transaction() as sess:
+            sess['spotify_auth_state'] = 'some state'
+        response = self.client.get(
+            url_for('spotify.callback', state='some state', code='123'))
+        self.assertEqual(response.status_code, 503)
+        self.assertIn(b'There was an error while trying to authenticate you.'
+                      b'Please, try again.', response.data)
+        self.assertEqual(post.call_count, 1)
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
+    def test_logout(self, post, Spotify):
+        response = self.client.get(url_for('spotify.logout'))
+        self.assertRedirects(response, url_for('views.index'))
+        response = self.client.get(url_for('spotify.index'))
+        self.assertRedirects(response, url_for('spotify.login'))
+        self.login()
+        response = self.client.get(url_for('spotify.index'))
+        self.assert200(response)
+        response = self.client.get(url_for('spotify.logout'))
+        self.assertRedirects(response, url_for('views.index'))
+        response = self.client.get(url_for('spotify.index'))
+        self.assertRedirects(response, url_for('spotify.login'))
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
+    @mock.patch('gepify.providers.songs.get_song',
+                side_effect=lambda song_name: {'name': song_name, 'files': {}})
+    def test_get_playlist(self, post, Spotify, get_song):
+        self.login()
+        response = self.client.get(url_for('spotify.playlist', id='1'))
+        self.assert200(response)
+        self.assertIn(b'Playlist 1', response.data)
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    def test_download_song_in_unsupported_format(self, post):
+        self.login()
+        response = self.client.get(
+            url_for('spotify.download_song',
+                    song_name='test song', format='wav'))
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b'Unsupported format', response.data)
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    @mock.patch('gepify.providers.songs.has_song_format',
+                side_effect=lambda song, format: False)
+    @mock.patch('gepify.providers.songs.download_song.delay',
+                side_effect=lambda song, format: None)
+    def test_download_song_if_song_is_missing(self, post, has_song,
+                                              download_song):
+        self.login()
+        response = self.client.get(
+            url_for('spotify.download_song',
+                    song_name='test song', format='mp3'))
+        self.assert200(response)
+        self.assertIn(b'Your song has started downloading.', response.data)
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    @mock.patch('gepify.providers.songs.has_song_format',
+                side_effect=lambda song, format: True)
+    @mock.patch('gepify.providers.songs.get_song',
+                side_effect=lambda song: {
+                    'name': song, 'files': {'mp3': song+'.mp3'}})
+    def test_download_song_if_song_is_not_missing(self, post, has_song,
+                                                  get_song):
+        with open('test song.mp3', 'w+') as f:
+            f.write('some data')
+
+        self.login()
+        response = self.client.get(
+            url_for('spotify.download_song',
+                    song_name='test song', format='mp3'))
+        self.assert200(response)
+        self.assertEqual(b'some data', response.data)
+        self.assertTrue(response.content_type.startswith('audio'))
+        response.close()
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    def test_download_playlist_with_wrong_post_data(self, post):
+        self.login()
+        response = self.client.post(url_for('spotify.download_playlist'))
+        self.assertEqual(response.status_code, 400)
+        response = self.client.post(url_for('spotify.download_playlist'),
+                                    data={'playlist_id': 'some id'})
+        self.assertEqual(response.status_code, 400)
+        response = self.client.post(url_for('spotify.download_playlist'),
+                                    data={'format': 'mp3'})
+        self.assertEqual(response.status_code, 400)
+        response = self.client.post(
+            url_for('spotify.download_playlist'),
+            data={'playlist_id': 'some id', 'format': 'wav'})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b'Unsupported format', response.data)
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    @mock.patch('gepify.providers.playlists.has_playlist',
+                side_effect=lambda *args: False)
+    @mock.patch('gepify.providers.playlists.download_playlist.delay')
+    @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
+    def test_download_playlist_if_playlist_is_missing(
+        self, post, has_playlist, download_playlist, Spotify):
+        self.login()
+        response = self.client.post(
+            url_for('spotify.download_playlist'),
+            data={'playlist_id': '1', 'format': 'mp3'})
+        self.assert200(response)
+        self.assertIn(b'Your playlist is getting downloaded', response.data)
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    @mock.patch('gepify.providers.playlists.has_playlist',
+                side_effect=lambda *args: True)
+    @mock.patch('gepify.providers.playlists.get_playlist',
+                side_effect=lambda *args: 'playlist.zip')
+    @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
+    def test_download_playlist_if_playlist_is_not_missing(self, a,b,c,d):
+        with open('playlist.zip', 'w+') as f:
+            f.write('some data')
+
+        self.login()
+        response = self.client.post(
+            url_for('spotify.download_playlist'),
+            data={'playlist_id': '1', 'format': 'mp3'})
+        self.assert200(response)
+        self.assertEqual(b'some data', response.data)
+        self.assertEqual(response.content_type, 'application/zip')
+        response.close()

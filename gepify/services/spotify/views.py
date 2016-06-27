@@ -47,13 +47,11 @@ def callback():
     state = request.args.get('state', None)
     stored_state = session.get('spotify_auth_state', None)
 
-    if error is not None:
-        # TODO
-        pass
-    elif state is None or state != stored_state:
-        # TODO
-        # return redirect()
-        return 'Error: state mismatch'
+    if error is not None or state is None or state != stored_state:
+        return render_template(
+            'show_message.html',
+            message='There was an error while trying to authenticate you.'
+                    'Please, try again.'), 503
     else:
         session.pop('spotify_auth_state', None)
         payload = {
@@ -66,8 +64,10 @@ def callback():
             models.request_access_token(payload)
             return redirect(url_for('spotify.index'))
         except:
-            # TODO
-            return 'Error: did not get token'
+            return render_template(
+                'show_message.html',
+                message='There was an error while trying to authenticate you.'
+                        'Please, try again.'), 503
 
 
 @spotify_service.route('/logout')
@@ -96,31 +96,31 @@ def download_playlist():
     format = request.form['format']
 
     if format not in SUPPORTED_FORMATS:
-        # TODO
-        return 'Unsupported format'
+        return render_template(
+            'show_message.html', message='Unsupported format'), 400
 
-    if playlists.has_playlist('spotify', playlist_id, format):
-        playlist = playlists.get_playlist('spotify', playlist_id, format)
-        playlist_name = models.get_playlist_name(playlist_id)
-        return send_file(
-            '../' + playlist,
-            as_attachment=True,
-            attachment_filename='{}.zip'.format(playlist_name),
-            mimetype='application/zip'
-        )
+    if not playlists.has_playlist('spotify', playlist_id, format):
+        playlist = models.get_playlist(playlist_id, keep_song_names=True)
+        playlists.download_playlist.delay(playlist, 'spotify', format=format)
+        return render_template('show_message.html',
+                               message='Your playlist is getting downloaded')
 
-    playlist = models.get_playlist(playlist_id, keep_song_names=True)
-    playlists.download_playlist.delay(playlist, 'spotify', format=format)
-    return render_template('show_message.html',
-                           message='Your playlist is getting downloaded')
+    playlist = playlists.get_playlist('spotify', playlist_id, format)
+    playlist_name = models.get_playlist_name(playlist_id)
+    return send_file(
+        '../' + playlist,
+        as_attachment=True,
+        attachment_filename='{}.zip'.format(playlist_name),
+        mimetype='application/zip'
+    )
 
 
 @spotify_service.route('/download_song/<song_name>/<format>')
 @login_required
 def download_song(song_name, format):
     if format not in SUPPORTED_FORMATS:
-        # TODO
-        return 'Unsupported format'
+        return render_template(
+            'show_message.html', message='Unsupported format'), 400
 
     if not songs.has_song_format(song_name, format):
         songs.download_song.delay(song_name, format=format)
@@ -134,4 +134,5 @@ def download_song(song_name, format):
         '../' + song['files'][format],
         as_attachment=True,
         attachment_filename=song['name'],
-        mimetype=MIMETYPES[format])
+        mimetype=MIMETYPES[format]
+    )

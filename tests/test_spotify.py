@@ -316,7 +316,8 @@ class SpotifyModelsTestCase(GepifyTestCase):
 
 
 class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         spotify.models.cache = NullCache()
 
     @classmethod
@@ -334,7 +335,7 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
 
     @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
     @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
-    def test_index_if_logged_in(self, post, Spotify):
+    def test_index_if_logged_in(self, Spotify, post):
         self.login()
         response = self.client.get(url_for('spotify.index'))
         self.assert200(response)
@@ -388,7 +389,7 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
 
     @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
     @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
-    def test_logout(self, post, Spotify):
+    def test_logout(self, Spotify, post):
         response = self.client.get(url_for('spotify.logout'))
         self.assertRedirects(response, url_for('views.index'))
         response = self.client.get(url_for('spotify.index'))
@@ -405,7 +406,7 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
     @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
     @mock.patch('gepify.providers.songs.get_song',
                 side_effect=lambda song_name: {'name': song_name, 'files': {}})
-    def test_get_playlist(self, post, Spotify, get_song):
+    def test_get_playlist(self, get_song, Spotify, post):
         self.login()
         response = self.client.get(url_for('spotify.playlist', id='1'))
         self.assert200(response)
@@ -425,8 +426,8 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
                 side_effect=lambda song, format: False)
     @mock.patch('gepify.providers.songs.download_song.delay',
                 side_effect=lambda song, format: None)
-    def test_download_song_if_song_is_missing(self, post, has_song,
-                                              download_song):
+    def test_download_song_if_song_is_missing(self, download_song, has_song,
+                                              post):
         self.login()
         response = self.client.get(
             url_for('spotify.download_song',
@@ -440,8 +441,8 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
     @mock.patch('gepify.providers.songs.get_song',
                 side_effect=lambda song: {
                     'name': song, 'files': {'mp3': song+'.mp3'}})
-    def test_download_song_if_song_is_not_missing(self, post, has_song,
-                                                  get_song):
+    def test_download_song_if_song_is_not_missing(self, get_song, has_song,
+                                                  post):
         with open('test song.mp3', 'w+') as f:
             f.write('some data')
 
@@ -477,7 +478,7 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
     @mock.patch('gepify.providers.playlists.download_playlist.delay')
     @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
     def test_download_playlist_if_playlist_is_missing(
-        self, post, has_playlist, download_playlist, Spotify):
+        self, Spotify, download_playlist, has_playlist, post):
         self.login()
         response = self.client.post(
             url_for('spotify.download_playlist'),

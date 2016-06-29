@@ -4,8 +4,8 @@ from apiclient.errors import HttpError
 import youtube_dl
 
 DEVELOPER_KEY = os.environ.get('YOUTUBE_DEVELOPER_KEY')
-YOUTUBE_API_SERVICE_NAME = "youtube"
-YOUTUBE_API_VERSION = "v3"
+YOUTUBE_API_SERVICE_NAME = 'youtube'
+YOUTUBE_API_VERSION = 'v3'
 
 downloaders = {
     'mp3': youtube_dl.YoutubeDL({
@@ -35,15 +35,17 @@ def get_song_id(track):
 
     search_response = youtube.search().list(
             q=track,
-            part="id,snippet",
+            part='id,snippet',
             maxResults=10
         ).execute()
 
     videos = []
 
-    for search_result in search_response.get("items", []):
-        if search_result["id"]["kind"] == "youtube#video":
-            return search_result["id"]["videoId"]
+    for search_result in search_response.get('items', []):
+        if search_result['id']['kind'] == 'youtube#video':
+            return search_result['id']['videoId']
+
+    raise Exception('Could not find song')
 
 
 def get_song_ids(tracks):
@@ -53,7 +55,3 @@ def get_song_ids(tracks):
 def download_song(id, format):
     with downloaders[format] as ydl:
         return ydl.download(['http://www.youtube.com/watch?v=' + id])
-
-
-def download_songs(ids, format):
-    return {id: download_song(id, format) for id in ids}

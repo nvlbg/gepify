@@ -14,6 +14,7 @@ setup(
         'Werkzeug>=0.11.9',
         'requests>=2.10.0',
         'spotipy>=2.3.8',
+        'soundcloud>=0.5.0',
         'google-api-python-client>=1.5.0',
         'youtube-dl>=2016.6.27',
         'gunicorn>=19.6.0'

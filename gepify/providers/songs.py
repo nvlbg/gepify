@@ -1,6 +1,6 @@
 from werkzeug.contrib.cache import RedisCache
 from gepify.celery import celery_app
-from . import youtube
+from . import youtube, soundcloud
 
 SUPPORTED_FORMATS = ['mp3', 'ogg']
 MIMETYPES = {
@@ -59,6 +59,11 @@ def download_song(song_name, provider='youtube', format='mp3'):
         if provider == 'youtube':
             song_id = youtube.get_song_id(song_name)
             youtube.download_song(song_id, format)
+            add_song_file(
+                song_name, 'songs/{}.{}'.format(song_id, format), format)
+        elif provider == 'soundcloud':
+            song_id, download_id = soundcloud.get_song_id(song_name)
+            soundcloud.download_song(download_id, format)
             add_song_file(
                 song_name, 'songs/{}.{}'.format(song_id, format), format)
         else:

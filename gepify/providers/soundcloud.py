@@ -16,7 +16,7 @@ def get_song_id(track):
         return (id, download_id)
 
 
-    raise Exception('Could not find song')
+    raise RuntimeError('Could not find song')
 
 
 def download_song(id, format):

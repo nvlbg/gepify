@@ -48,7 +48,7 @@ def create_zip_playlist(playlist, service, checksum, format='mp3'):
 @celery_app.task
 def download_playlist(playlist, service, provider='youtube', format='mp3'):
     if format not in SUPPORTED_FORMATS:
-        raise Exception('Unsupported format')
+        raise ValueError('Format not supported: {}'.format(format))
 
     playlist_cache_key = '{}_{}_{}'.format(service, playlist['id'], format)
     playlist_checksum = checksum(playlist['tracks'])

@@ -30,7 +30,7 @@ class SongsTestCase(TestCase):
         self.assertFalse(cache_set.called)
 
     def test_add_song_file_if_format_is_unsupported(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValueError):
             songs.add_song_file('some song', 'some song.mp3', 'wav')
 
     def test_add_song_file(self):
@@ -108,7 +108,7 @@ class YoutubeTestCase(TestCase):
     @mock.patch('googleapiclient.discovery.Resource',
                 side_effect=mocked_Resource)
     def test_get_song_id_if_no_song_is_found(self, Resource):
-        with self.assertRaises(Exception):
+        with self.assertRaises(RuntimeError):
             youtube.get_song_id('missing song')
 
     def test_download_song_with_unsupported_format(self):
@@ -153,7 +153,7 @@ class SoundcloudTestCase(TestCase):
 
     @mock.patch('soundcloud.Client', side_effect=mocked_Client)
     def test_get_song_id_if_no_song_is_found(self, Client):
-        with self.assertRaises(Exception):
+        with self.assertRaises(RuntimeError):
             soundcloud.get_song_id('missing song')
 
     def test_download_song_with_unsupported_format(self):

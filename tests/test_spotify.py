@@ -273,7 +273,7 @@ class SpotifyModelsTestCase(GepifyTestCase):
             'redirect_uri': ''
         }
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(RuntimeError):
             spotify.models.request_access_token(payload)
 
     def test_get_username(self):

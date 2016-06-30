@@ -46,7 +46,7 @@ def get_song_id(track):
         if search_result['id']['kind'] == 'youtube#video':
             return search_result['id']['videoId']
 
-    raise Exception('Could not find song')
+    raise RuntimeError('Could not find song')
 
 
 def download_song(id, format):

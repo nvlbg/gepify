@@ -28,6 +28,11 @@ def checksum(tracks):
 
 
 @celery_app.task
+def handle_error(request, exc, traceback, playlist_cache_key):
+    cache.delete(playlist_cache_key)
+
+
+@celery_app.task
 def create_zip_playlist(playlist, service, checksum, format='mp3'):
     playlist_cache_key = '{}_{}_{}'.format(service, playlist['id'], format)
     playlist_zip_filename = 'playlists/{}.zip'.format(playlist_cache_key)
@@ -64,15 +69,22 @@ def download_playlist(playlist, service, provider='youtube', format='mp3'):
     for song_name in playlist['tracks']:
         if not songs.has_song_format(song_name, format):
             download_song_tasks.append(
-                songs.download_song.s(song_name, provider, format))
+                songs.download_song.s(
+                    song_name, provider, format
+                ).on_error(handle_error.s(playlist_cache_key))
+            )
 
     if len(download_song_tasks) == 0:
-        create_zip_playlist.delay(playlist, service, playlist_checksum, format)
+        create_zip_playlist.apply_async(
+            args=(playlist, service, playlist_checksum, format),
+            link_error=handle_error.s(playlist_cache_key)
+        )
     else:
         chord(
             download_song_tasks,
             create_zip_playlist.si(
-                playlist, service, playlist_checksum, format)
+                playlist, service, playlist_checksum, format
+            ).on_error(handle_error.s(playlist_cache_key))
         ).delay()
 
 

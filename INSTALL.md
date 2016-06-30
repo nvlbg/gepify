@@ -67,6 +67,10 @@ your virtualenv if you created one):
 
     celery -A gepify.celery worker --loglevel=info
 
+You also need to run celery beat to run periodic tasks, so open another terminal and run:
+
+    celery -A gepify beat
+
 Now you can start the webserver in a new terminal:
 
     python3 runserver.py

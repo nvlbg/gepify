@@ -67,8 +67,10 @@ class MockSpotipy:
     def user_playlists(self, username):
         return {
             'items': [
-                {'id': '1', 'images': [], 'name': 'Playlist 1', 'tracks': {'total': 10}},
-                {'id': '2', 'images': [], 'name': 'Playlist 2', 'tracks': {'total': 20}},
+                {'id': '1', 'images': [], 'name': 'Playlist 1',
+                 'tracks': {'total': 10}},
+                {'id': '2', 'images': [], 'name': 'Playlist 2',
+                 'tracks': {'total': 20}},
             ]
         }
 
@@ -80,9 +82,11 @@ class MockSpotipy:
                 'tracks': {
                     'items': [
                         {'track':
-                            {'name': 'Song 1', 'artists': [{'name': 'Artist 1'}]}},
+                            {'name': 'Song 1',
+                             'artists': [{'name': 'Artist 1'}]}},
                         {'track':
-                            {'name': 'Song 2', 'artists': [{'name': 'Artist 2'}]}}
+                            {'name': 'Song 2',
+                             'artists': [{'name': 'Artist 2'}]}}
                     ]
                 }
             }
@@ -99,7 +103,8 @@ class ProfileMixin():
     def login(self):
         login_response = self.client.get(url_for('spotify.login'))
         spotify_redirect = login_response.location
-        self.assertTrue(spotify_redirect.startswith('https://accounts.spotify.com/authorize'))
+        self.assertTrue(spotify_redirect.startswith(
+                            'https://accounts.spotify.com/authorize'))
 
         params = parse.parse_qs(parse.urlparse(spotify_redirect).query)
 
@@ -183,7 +188,8 @@ class SpotifyDecoratorsTestCase(GepifyTestCase, ProfileMixin):
 
         response = self.client.get('/test')
         self.assert403(response)
-        self.assertIn(b'You need to be logged out to see this page', response.data)
+        self.assertIn(
+            b'You need to be logged out to see this page', response.data)
 
         self.logout()
 
@@ -201,8 +207,10 @@ class SpotifyModelsTestCase(GepifyTestCase):
         g.spotipy.user_playlists = mock.MagicMock(name='user_playlists')
         g.spotipy.user_playlists.return_value = {
             'items': [
-                {'id': '1', 'images': [], 'name': 'Playlist 1', 'tracks': {'total': 10}},
-                {'id': '2', 'images': [], 'name': 'Playlist 2', 'tracks': {'total': 20}},
+                {'id': '1', 'images': [], 'name': 'Playlist 1',
+                 'tracks': {'total': 10}},
+                {'id': '2', 'images': [], 'name': 'Playlist 2',
+                 'tracks': {'total': 20}},
             ]
         }
         g.spotipy.user_playlist = mock.MagicMock(name='user_playlist')

@@ -24,4 +24,4 @@ six==1.10.0
 spotipy==2.3.8
 uritemplate==0.6
 Werkzeug==0.11.9
-youtube-dl==2016.5.10
+youtube-dl==2016.6.27

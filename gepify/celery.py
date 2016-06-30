@@ -1,8 +1,19 @@
 from celery import Celery
+from datetime import timedelta
 import os
 
-celery_app = Celery('gepify', backend=os.environ.get('CELERY_BACKEND'),
-                    broker=os.environ.get('CELERY_BROKER_URL'))
+celery_app = Celery('gepify')
 
-if __name__ == '__main__':
-    celery_app.start()
+celery_app.conf.update(
+    BROKER_URL=os.environ.get('CELERY_BROKER_URL'),
+    CELERY_RESULT_BACKEND=os.environ.get('CELERY_BACKEND'),
+    CELERY_TASK_SERIALIZER='json',
+    CELERY_ACCEPT_CONTENT=['json'],
+    CELERY_RESULT_SERIALIZER='json',
+    CELERYBEAT_SCHEDULE={
+        'clean-playlists': {
+            'task': 'gepify.providers.playlists.clean_playlists',
+            'schedule': timedelta(hours=1)
+        }
+    }
+)

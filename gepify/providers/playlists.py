@@ -5,6 +5,8 @@ from .songs import SUPPORTED_FORMATS
 from celery import chord
 import zipfile
 from hashlib import md5
+import os
+import time
 
 cache = RedisCache(key_prefix='playlist_', default_timeout=0)
 
@@ -52,8 +54,8 @@ def download_playlist(playlist, service, provider='youtube', format='mp3'):
     playlist_checksum = checksum(playlist['tracks'])
     playlist_data = cache.get(playlist_cache_key)
 
-    if (playlist_data is not None and playlist_data['checksum'] ==
-            playlist_checksum) or playlist_data == 'downloading':
+    if playlist_data == 'downloading' or (playlist_data is not None and
+       playlist_data['checksum'] == playlist_checksum):
         return
 
     cache.set(playlist_cache_key, 'downloading')
@@ -65,9 +67,22 @@ def download_playlist(playlist, service, provider='youtube', format='mp3'):
                 songs.download_song.s(song_name, provider, format))
 
     if len(download_song_tasks) == 0:
-        create_zip_playlist.delay(
-            playlist, service, playlist_checksum, format)
+        create_zip_playlist.delay(playlist, service, playlist_checksum, format)
     else:
-        chord(download_song_tasks,
-              create_zip_playlist.si(
-                  playlist, service, playlist_checksum, format)).delay()
+        chord(
+            download_song_tasks,
+            create_zip_playlist.si(
+                playlist, service, playlist_checksum, format)
+        ).delay()
+
+
+@celery_app.task(ignore_result=True)
+def clean_playlists():
+    for playlist in os.listdir('playlists/'):
+        path_to_playlist = 'playlists/{}'.format(playlist)
+        last_modified = os.path.getmtime(path_to_playlist)
+        now = time.time()
+
+        if now - last_modified > 30*60:  # 30 minutes
+            os.remove(path_to_playlist)
+            cache.delete(playlist[:-4])

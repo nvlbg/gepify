@@ -1,8 +1,14 @@
+# cache files
 gepify.egg-info/
+*.pyc
+
+# songs and playlists folders
 songs/*
 playlists/*
-*.pyc
 
 # coverage files
 .coverage
 htmlcov/*
+
+# celery files
+celerybeat-schedule

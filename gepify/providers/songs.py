@@ -55,11 +55,15 @@ def download_song(song_name, provider='youtube', format='mp3'):
     song['files'][format] = 'downloading'
     cache.set(song_name, song)
 
-    if provider == 'youtube':
-        song_id = youtube.get_song_id(song_name)
-        youtube.download_song(song_id, format)
-        add_song_file(song_name, 'songs/{}.{}'.format(song_id, format), format)
-    else:
+    try:
+        if provider == 'youtube':
+            song_id = youtube.get_song_id(song_name)
+            youtube.download_song(song_id, format)
+            add_song_file(
+                song_name, 'songs/{}.{}'.format(song_id, format), format)
+        else:
+            raise Exception('Provider not found')
+    except:
         del song['files'][format]
         cache.set(song_name, song)
-        raise Exception('Provider not found')
+        raise

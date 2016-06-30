@@ -522,6 +522,7 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
                 side_effect=lambda *args: {
                     'path': 'playlist.zip',
                     'checksum': 'old checkum'})
+    @mock.patch('gepify.providers.playlists.download_playlist.delay')
     @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
     def test_download_playlist_if_playlist_has_changed(self, *args):
         self.login()

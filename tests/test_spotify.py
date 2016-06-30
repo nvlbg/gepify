@@ -514,3 +514,19 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertEqual(b'some data', response.data)
         self.assertEqual(response.content_type, 'application/zip')
         response.close()
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    @mock.patch('gepify.providers.playlists.has_playlist',
+                side_effect=lambda *args: True)
+    @mock.patch('gepify.providers.playlists.get_playlist',
+                side_effect=lambda *args: {
+                    'path': 'playlist.zip',
+                    'checksum': 'old checkum'})
+    @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
+    def test_download_playlist_if_playlist_has_changed(self, *args):
+        self.login()
+        response = self.client.post(
+            url_for('spotify.download_playlist'),
+            data={'playlist_id': '1', 'format': 'mp3'})
+        self.assert200(response)
+        self.assertIn(b'Your playlist is getting downloaded', response.data)

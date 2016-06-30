@@ -7,8 +7,9 @@ from . import models
 from .models import SPOTIFY_CLIENT_ID, SPOTIFY_REDIRECT_URI
 from ..util import get_random_str
 import urllib
-from gepify.providers import songs, playlists
-from gepify.providers.songs import SUPPORTED_FORMATS, MIMETYPES
+from gepify.providers import (
+    songs, playlists, SUPPORTED_FORMATS, MIMETYPES
+)
 from pprint import pprint
 
 

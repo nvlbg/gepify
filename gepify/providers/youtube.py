@@ -2,6 +2,7 @@ import os
 from apiclient.discovery import build
 from apiclient.errors import HttpError
 import youtube_dl
+from . import SUPPORTED_FORMATS
 
 DEVELOPER_KEY = os.environ.get('YOUTUBE_DEVELOPER_KEY')
 YOUTUBE_API_SERVICE_NAME = 'youtube'
@@ -48,10 +49,9 @@ def get_song_id(track):
     raise Exception('Could not find song')
 
 
-def get_song_ids(tracks):
-    return {track: get_song_id(track) for track in tracks}
-
-
 def download_song(id, format):
+    if format not in SUPPORTED_FORMATS:
+        raise ValueError('Format not supported: {}'.format(format))
+
     with downloaders[format] as ydl:
         return ydl.download(['http://www.youtube.com/watch?v=' + id])

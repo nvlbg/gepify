@@ -1,12 +1,6 @@
 from werkzeug.contrib.cache import RedisCache
 from gepify.celery import celery_app
-from . import youtube, soundcloud
-
-SUPPORTED_FORMATS = ['mp3', 'ogg']
-MIMETYPES = {
-    'mp3': 'audio/mpeg',
-    'ogg': 'audio/ogg'
-}
+from . import youtube, soundcloud, SUPPORTED_FORMATS, MIMETYPES
 
 cache = RedisCache(key_prefix='song_info_', default_timeout=0)
 

@@ -1,6 +1,6 @@
 from unittest import mock, TestCase
 import gepify
-from gepify.providers import songs, playlists, youtube
+from gepify.providers import songs, playlists, youtube, soundcloud
 from werkzeug.contrib.cache import SimpleCache
 import json
 
@@ -110,3 +110,58 @@ class YoutubeTestCase(TestCase):
     def test_get_song_id_if_no_song_is_found(self, Resource):
         with self.assertRaises(Exception):
             youtube.get_song_id('missing song')
+
+    def test_download_song_with_unsupported_format(self):
+        with self.assertRaises(ValueError):
+            youtube.download_song('song id', 'wav')
+
+    @mock.patch('youtube_dl.YoutubeDL.download')
+    def test_download_song(self, download):
+        youtube.download_song('song id', 'mp3')
+        self.assertEqual(download.call_count, 1)
+        download.assert_called_with(['http://www.youtube.com/watch?v=song id'])
+
+
+class mocked_Response():
+    def __init__(self, obj):
+        self.obj = obj
+
+
+class mocked_Client():
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def get(self, resource, q):
+        if q == 'existing song':
+            return [mocked_Response({
+                'id': '1234',
+                'permalink': 'song_permalink',
+                'user': {
+                    'permalink': 'user_permalink'
+                }
+            })]
+
+        return []
+
+
+class SoundcloudTestCase(TestCase):
+    @mock.patch('soundcloud.Client', side_effect=mocked_Client)
+    def test_get_song_id(self, Client):
+        song_id, download_id = soundcloud.get_song_id('existing song')
+        self.assertEqual(song_id, '1234')
+        self.assertEqual(download_id, 'user_permalink/song_permalink')
+
+    @mock.patch('soundcloud.Client', side_effect=mocked_Client)
+    def test_get_song_id_if_no_song_is_found(self, Client):
+        with self.assertRaises(Exception):
+            soundcloud.get_song_id('missing song')
+
+    def test_download_song_with_unsupported_format(self):
+        with self.assertRaises(ValueError):
+            soundcloud.download_song('song id', 'wav')
+
+    @mock.patch('youtube_dl.YoutubeDL.download')
+    def test_download_song(self, download):
+        soundcloud.download_song('song id', 'mp3')
+        self.assertEqual(download.call_count, 1)
+        download.assert_called_with(['http://soundcloud.com/song id'])

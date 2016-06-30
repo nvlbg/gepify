@@ -1,6 +1,7 @@
 import soundcloud
 import os
 from .youtube import downloaders
+from . import SUPPORTED_FORMATS
 
 SOUNDCLOUD_CLIENT_ID = os.environ.get('SOUNDCLOUD_CLIENT_ID')
 
@@ -19,5 +20,8 @@ def get_song_id(track):
 
 
 def download_song(id, format):
+    if format not in SUPPORTED_FORMATS:
+        raise ValueError('Format not supported: {}'.format(format))
+
     with downloaders[format] as ydl:
         return ydl.download(['http://soundcloud.com/' + id])

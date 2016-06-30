@@ -11,4 +11,4 @@ TODO
 - [ ] logging
 - [x] write some documentation - how to start the app, etc.
 - [ ] add option to download in aac format
-- [ ] re-download playlist if songs have changed
+- [x] re-download playlist if songs have changed

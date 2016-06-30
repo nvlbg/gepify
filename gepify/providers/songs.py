@@ -62,4 +62,4 @@ def download_song(song_name, provider='youtube', format='mp3'):
     else:
         del song['files'][format]
         cache.set(song_name, song)
-        # TODO: throw some exception
+        raise Exception('Provider not found')

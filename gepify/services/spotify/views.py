@@ -89,32 +89,6 @@ def playlist(id):
                            SUPPORTED_FORMATS=SUPPORTED_FORMATS)
 
 
-@spotify_service.route('/download_playlist', methods=['POST'])
-@login_required
-def download_playlist():
-    playlist_id = request.form['playlist_id']
-    format = request.form['format']
-
-    if format not in SUPPORTED_FORMATS:
-        return render_template(
-            'show_message.html', message='Unsupported format'), 400
-
-    if not playlists.has_playlist('spotify', playlist_id, format):
-        playlist = models.get_playlist(playlist_id, keep_song_names=True)
-        playlists.download_playlist.delay(playlist, 'spotify', format=format)
-        return render_template('show_message.html',
-                               message='Your playlist is getting downloaded')
-
-    playlist = playlists.get_playlist('spotify', playlist_id, format)
-    playlist_name = models.get_playlist_name(playlist_id)
-    return send_file(
-        '../' + playlist,
-        as_attachment=True,
-        attachment_filename='{}.zip'.format(playlist_name),
-        mimetype='application/zip'
-    )
-
-
 @spotify_service.route('/download_song/<song_name>/<format>')
 @login_required
 def download_song(song_name, format):
@@ -135,4 +109,36 @@ def download_song(song_name, format):
         as_attachment=True,
         attachment_filename=song['name'],
         mimetype=MIMETYPES[format]
+    )
+
+
+@spotify_service.route('/download_playlist', methods=['POST'])
+@login_required
+def download_playlist():
+    playlist_id = request.form['playlist_id']
+    format = request.form['format']
+
+    if format not in SUPPORTED_FORMATS:
+        return render_template(
+            'show_message.html', message='Unsupported format'), 400
+
+    playlist = models.get_playlist(playlist_id, keep_song_names=True)
+    if not playlists.has_playlist('spotify', playlist_id, format):
+        playlists.download_playlist.delay(playlist, 'spotify', format=format)
+        return render_template('show_message.html',
+                               message='Your playlist is getting downloaded')
+
+    playlist_checksum = playlists.checksum(playlist['tracks'])
+    playlist_data = playlists.get_playlist('spotify', playlist_id, format)
+
+    if playlist_data['checksum'] != playlist_checksum:
+        playlists.download_playlist.delay(playlist, 'spotify', format=format)
+        return render_template('show_message.html',
+                               message='Your playlist is getting downloaded')
+
+    return send_file(
+        '../' + playlist_data['path'],
+        as_attachment=True,
+        attachment_filename='{}.zip'.format(playlist['name']),
+        mimetype='application/zip'
     )

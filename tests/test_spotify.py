@@ -478,7 +478,7 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
     @mock.patch('gepify.providers.playlists.download_playlist.delay')
     @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
     def test_download_playlist_if_playlist_is_missing(
-        self, Spotify, download_playlist, has_playlist, post):
+            self, Spotify, download_playlist, has_playlist, post):
         self.login()
         response = self.client.post(
             url_for('spotify.download_playlist'),
@@ -490,9 +490,11 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
     @mock.patch('gepify.providers.playlists.has_playlist',
                 side_effect=lambda *args: True)
     @mock.patch('gepify.providers.playlists.get_playlist',
-                side_effect=lambda *args: 'playlist.zip')
+                side_effect=lambda *args: {
+                    'path': 'playlist.zip',
+                    'checksum': '2fd15849cfd59f547fb25ec68aaf04e7'})
     @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
-    def test_download_playlist_if_playlist_is_not_missing(self, a,b,c,d):
+    def test_download_playlist_if_playlist_is_not_missing(self, *args):
         with open('playlist.zip', 'w+') as f:
             f.write('some data')
 

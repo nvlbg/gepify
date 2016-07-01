@@ -19,7 +19,6 @@ def index():
 @deezer_service.route('/login')
 @logout_required
 def login():
-    print(DEEZER_REDIRECT_URI)
     state = get_random_str(16)
     session['deezer_auth_state'] = state
     query_parameters = {
@@ -43,10 +42,10 @@ def callback():
     stored_state = session.get('deezer_auth_state', None)
 
     if error is not None or state is None or state != stored_state:
-        current_app.logger.error('Could not authenticate spotify user:' +
-                                 'error: {}'.format(error) +
-                                 'state: {}'.format(state) +
-                                 'stored_state: {}'.format(stored_state))
+        current_app.logger.error('Could not authenticate spotify user:\n' +
+                                 'error: {}\n'.format(error) +
+                                 'state: {}\n'.format(state) +
+                                 'stored_state: {}\n'.format(stored_state))
         return render_template(
             'show_message.html',
             message='There was an error while trying to authenticate you.'

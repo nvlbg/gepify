@@ -1,8 +1,8 @@
-from flask import session
 import os
 import requests
 import json
 import time
+from flask import session
 
 DEEZER_APP_ID = os.environ.get('DEEZER_APP_ID')
 DEEZER_SECRET = os.environ.get('DEEZER_SECRET')

@@ -1,6 +1,7 @@
 from . import spotify_service
 from flask import (
-    session, render_template, redirect, request, url_for, send_file
+    session, render_template, redirect,
+    request, url_for, send_file, current_app
 )
 from .view_decorators import login_required, logout_required
 from . import models
@@ -10,12 +11,12 @@ import urllib
 from gepify.providers import (
     songs, playlists, SUPPORTED_FORMATS, MIMETYPES
 )
-from pprint import pprint
 
 
 @spotify_service.route('/')
 @login_required
 def index():
+    current_app.logger.error('test error')
     playlists = models.get_playlists()
     return render_template('show_playlists.html',
                            title='Spotify playlists',
@@ -49,6 +50,10 @@ def callback():
     stored_state = session.get('spotify_auth_state', None)
 
     if error is not None or state is None or state != stored_state:
+        current_app.logger.error('Could not authenticate spotify user:' +
+                                 'error: {}'.format(error) +
+                                 'state: {}'.format(state) +
+                                 'stored_state: {}'.format(stored_state))
         return render_template(
             'show_message.html',
             message='There was an error while trying to authenticate you.'
@@ -64,7 +69,9 @@ def callback():
         try:
             models.request_access_token(payload)
             return redirect(url_for('spotify.index'))
-        except:
+        except Exception as e:
+            current_app.logger.error(
+                'Could not authenticate spotify user: {}'.format(e))
             return render_template(
                 'show_message.html',
                 message='There was an error while trying to authenticate you.'
@@ -94,6 +101,10 @@ def playlist(id):
 @login_required
 def download_song(song_name, format):
     if format not in SUPPORTED_FORMATS:
+        current_app.logger.warning(
+            'User tried to download a song in unsupported format.' +
+            'Song: {}'.format(song_name) +
+            'Format: {}'.format(format))
         return render_template(
             'show_message.html', message='Unsupported format'), 400
 
@@ -120,6 +131,10 @@ def download_playlist():
     format = request.form['format']
 
     if format not in SUPPORTED_FORMATS:
+        current_app.logger.warning(
+            'User tried to download a playlist in unsupported format.' +
+            'Playlist: {}'.format(playlist_id) +
+            'Format: {}'.format(format))
         return render_template(
             'show_message.html', message='Unsupported format'), 400
 

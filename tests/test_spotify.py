@@ -1,11 +1,9 @@
 import gepify
-import requests
 from . import GepifyTestCase
 from flask import url_for, session, g
 import spotipy
 from werkzeug.contrib.cache import NullCache
 from urllib import parse
-from pprint import pprint
 from unittest import mock
 from gepify.services import spotify
 import json
@@ -122,7 +120,8 @@ class ProfileMixin():
 
 @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
 class SpotifyDecoratorsTestCase(GepifyTestCase, ProfileMixin):
-    def test_login_required_decorator(self, post):
+    @mock.patch('logging.Logger')
+    def test_login_required_decorator(self, *args):
         @self.app.route('/test')
         @spotify.view_decorators.login_required
         def test():
@@ -360,8 +359,9 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertIn(b'You need to be logged out to see this page',
                       response.data)
 
+    @mock.patch('logging.Logger')
     @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
-    def test_login_callback(self, post):
+    def test_login_callback(self, post, Logger):
         response = self.client.get(
             url_for('spotify.callback', error='access_denied'))
         self.assertEqual(response.status_code, 503)
@@ -384,8 +384,9 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertRedirects(response, url_for('spotify.index'))
         self.assertEqual(post.call_count, 1)
 
+    @mock.patch('logging.Logger')
     @mock.patch('requests.post', side_effect=mocked_spotify_api_404)
-    def test_login_callback_with_spotify_error(self, post):
+    def test_login_callback_with_spotify_error(self, post, Logger):
         with self.client.session_transaction() as sess:
             sess['spotify_auth_state'] = 'some state'
         response = self.client.get(
@@ -420,8 +421,9 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assert200(response)
         self.assertIn(b'Playlist 1', response.data)
 
+    @mock.patch('logging.Logger')
     @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
-    def test_download_song_in_unsupported_format(self, post):
+    def test_download_song_in_unsupported_format(self, *args):
         self.login()
         response = self.client.get(
             url_for('spotify.download_song',
@@ -463,8 +465,9 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertTrue(response.content_type.startswith('audio'))
         response.close()
 
+    @mock.patch('logging.Logger')
     @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
-    def test_download_playlist_with_wrong_post_data(self, post):
+    def test_download_playlist_with_wrong_post_data(self, *args):
         self.login()
         response = self.client.post(url_for('spotify.download_playlist'))
         self.assertEqual(response.status_code, 400)

@@ -6,6 +6,9 @@ gepify.egg-info/
 songs/*
 playlists/*
 
+# server log file
+server.log
+
 # coverage files
 .coverage
 htmlcov/*

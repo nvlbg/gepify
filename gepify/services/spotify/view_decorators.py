@@ -1,4 +1,4 @@
-from flask import session, redirect, url_for, g, render_template
+from flask import session, redirect, url_for, g, render_template, current_app
 from .models import request_access_token
 import time
 import spotipy
@@ -25,7 +25,9 @@ def login_required(f):
             try:
                 request_access_token(payload)
                 access_token = session['spotify_access_token']
-            except:
+            except Exception as e:
+                current_app.logger.error(
+                    'Could not refresh spotify token: {}'.format(e))
                 return render_template(
                     'show_message.html',
                     message='There was an error with authenticating'), 503

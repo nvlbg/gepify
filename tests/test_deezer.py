@@ -4,6 +4,7 @@ from urllib import parse
 from unittest import mock
 from flask import url_for, session
 import json
+import os
 
 
 class MockResponse:
@@ -12,10 +13,9 @@ class MockResponse:
         self.status_code = status_code
 
 
-def mocked_deezer_api_get(*args, **kwargs):
-    if args[0].startswith(
-            'https://connect.deezer.com/oauth/access_token.php'):
-        params = parse.parse_qs(parse.urlparse(args[0]).query)
+def mocked_deezer_api_get(url):
+    if url.startswith('https://connect.deezer.com/oauth/access_token.php'):
+        params = parse.parse_qs(parse.urlparse(url).query)
         assert params['output'][0] == 'json'
 
         if params['code'][0] == 'dummy code':
@@ -25,15 +25,30 @@ def mocked_deezer_api_get(*args, **kwargs):
             }, 200)
 
         return MockResponse({}, 500)
-    elif args[0].startswith(
-            'http://api.deezer.com/user/me'):
-        params = parse.parse_qs(parse.urlparse(args[0]).query)
+    elif url.startswith('http://api.deezer.com/user/me'):
+        params = parse.parse_qs(parse.urlparse(url).query)
         assert params['access_token'][0] == 'dummy token'
 
         return MockResponse({'id': 'dummy_user'}, 200)
-    elif args[0].startswith(
-            'http://api.deezer.com/user/dummy_user/playlists'):
+    elif url.startswith('http://api.deezer.com/user/dummy_user/playlists'):
         return MockResponse({'data': []}, 200)
+    elif url.startswith('http://api.deezer.com/playlist/1'):
+        return MockResponse({
+            'title': 'Playlist 1',
+            'description': '',
+            'tracks': {
+                'data': [
+                    {
+                        'title': 'Song 1',
+                        'artist': {
+                            'name': 'Artist 1'
+                        }
+                    }
+                ]
+            }
+        }, 200)
+
+    return MockResponse({}, 404)
 
 
 class ProfileMixin():
@@ -130,9 +145,23 @@ class DeezerModelsTestCase(GepifyTestCase):
 
 
 class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
+    @classmethod
+    def tearDownClass(cls):
+        if os.path.isfile('test song.mp3'):
+            os.remove('test song.mp3')
+
+        if os.path.isfile('playlist.zip'):
+            os.remove('playlist.zip')
+
     def test_index_if_not_logged_in(self):
         response = self.client.get(url_for('deezer.index'))
         self.assertRedirects(response, url_for('deezer.login'))
+
+    @mock.patch('requests.get', side_effect=mocked_deezer_api_get)
+    def test_index_if_logged_in(self, *args):
+        self.login()
+        response = self.client.get(url_for('deezer.index'))
+        self.assert200(response)
 
     def test_login(self):
         response = self.client.get(url_for('deezer.login'))
@@ -195,3 +224,151 @@ class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertRedirects(response, url_for('views.index'))
         response = self.client.get(url_for('deezer.index'))
         self.assertRedirects(response, url_for('deezer.login'))
+
+    @mock.patch('requests.get', side_effect=mocked_deezer_api_get)
+    @mock.patch('gepify.providers.songs.get_song',
+                side_effect=lambda song_name: {'name': song_name, 'files': {}})
+    def test_get_playlist(self, *args):
+        self.app.debug = False
+        self.login()
+        response = self.client.get(url_for('deezer.playlist', id='1'))
+        self.assert200(response)
+        self.assertIn(b'Playlist 1', response.data)
+
+        response = self.client.get(url_for('deezer.playlist', id='missing id'))
+        self.assert500(response)
+
+    @mock.patch('logging.Logger')
+    def test_download_song_in_unsupported_format(self, *args):
+        self.login()
+        response = self.client.get(
+            url_for('deezer.download_song',
+                    song_name='test song', format='wav'))
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b'Unsupported format', response.data)
+
+    @mock.patch('gepify.providers.songs.has_song_format',
+                side_effect=lambda song, format: False)
+    @mock.patch('gepify.providers.songs.download_song.delay')
+    def test_download_song_if_song_is_missing(self, download_song, *args):
+        self.login()
+        response = self.client.get(
+            url_for('deezer.download_song',
+                    song_name='test song', format='mp3'))
+        self.assert200(response)
+        self.assertIn(b'Your song has started downloading.', response.data)
+        self.assertEqual(download_song.call_count, 1)
+
+    @mock.patch('gepify.providers.songs.has_song_format',
+                side_effect=lambda song, format: True)
+    @mock.patch('gepify.providers.songs.get_song',
+                side_effect=lambda song: {
+                    'name': song, 'files': {'mp3': song+'.mp3'}})
+    def test_download_song_if_song_is_not_missing(self, *args):
+        with open('test song.mp3', 'w+') as f:
+            f.write('some data')
+
+        self.login()
+        response = self.client.get(
+            url_for('deezer.download_song',
+                    song_name='test song', format='mp3'))
+        self.assert200(response)
+        self.assertEqual(b'some data', response.data)
+        self.assertTrue(response.content_type.startswith('audio'))
+        response.close()
+
+    @mock.patch('logging.Logger')
+    @mock.patch('gepify.providers.songs.has_song_format',
+                side_effect=lambda song, format: True)
+    @mock.patch('gepify.providers.songs.get_song',
+                side_effect=lambda song: {
+                    'name': song, 'files': {'mp3': song+'.mp3'}})
+    def test_download_song_if_mp3_file_is_missing(self, *args):
+        self.login()
+        response = self.client.get(
+            url_for('deezer.download_song',
+                    song_name='no such song', format='mp3'))
+        self.assert500(response)
+        response.close()
+
+    @mock.patch('logging.Logger')
+    @mock.patch('requests.get', side_effect=mocked_deezer_api_get)
+    def test_download_playlist_with_wrong_post_data(self, *args):
+        self.login()
+        response = self.client.post(url_for('deezer.download_playlist'))
+        self.assertEqual(response.status_code, 400)
+        response = self.client.post(url_for('deezer.download_playlist'),
+                                    data={'playlist_id': 'some id'})
+        self.assertEqual(response.status_code, 400)
+        response = self.client.post(url_for('deezer.download_playlist'),
+                                    data={'format': 'mp3'})
+        self.assertEqual(response.status_code, 400)
+        response = self.client.post(
+            url_for('deezer.download_playlist'),
+            data={'playlist_id': 'some id', 'format': 'wav'})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b'Unsupported format', response.data)
+
+    @mock.patch('requests.get', side_effect=mocked_deezer_api_get)
+    @mock.patch('gepify.providers.playlists.has_playlist',
+                side_effect=lambda *args: False)
+    @mock.patch('gepify.providers.playlists.download_playlist.delay')
+    def test_download_playlist_if_playlist_is_missing(self, *args):
+        self.login()
+        response = self.client.post(
+            url_for('deezer.download_playlist'),
+            data={'playlist_id': '1', 'format': 'mp3'})
+        self.assert200(response)
+        self.assertIn(b'Your playlist is getting downloaded', response.data)
+
+    @mock.patch('requests.get', side_effect=mocked_deezer_api_get)
+    @mock.patch('gepify.providers.playlists.has_playlist',
+                side_effect=lambda *args: True)
+    @mock.patch('gepify.providers.playlists.get_playlist',
+                side_effect=lambda *args: {
+                    'path': 'playlist.zip',
+                    'checksum': '7cf74c9cd14481ba46812f80617ad95d'})
+    def test_download_playlist_if_playlist_is_not_missing(self, *args):
+        with open('playlist.zip', 'w+') as f:
+            f.write('some data')
+
+        self.login()
+        response = self.client.post(
+            url_for('deezer.download_playlist'),
+            data={'playlist_id': '1', 'format': 'mp3'})
+        self.assert200(response)
+        self.assertEqual(b'some data', response.data)
+        self.assertEqual(response.content_type, 'application/zip')
+        response.close()
+
+    @mock.patch('logging.Logger')
+    @mock.patch('requests.get', side_effect=mocked_deezer_api_get)
+    @mock.patch('gepify.providers.playlists.has_playlist',
+                side_effect=lambda *args: True)
+    @mock.patch('gepify.providers.playlists.get_playlist',
+                side_effect=lambda *args: {
+                    'path': 'missing.zip',
+                    'checksum': '7cf74c9cd14481ba46812f80617ad95d'})
+    def test_download_playlist_if_zip_file_is_missing(self, *args):
+        self.login()
+        response = self.client.post(
+            url_for('deezer.download_playlist'),
+            data={'playlist_id': '1', 'format': 'mp3'})
+        self.assert500(response)
+        response.close()
+
+    @mock.patch('requests.get', side_effect=mocked_deezer_api_get)
+    @mock.patch('gepify.providers.playlists.has_playlist',
+                side_effect=lambda *args: True)
+    @mock.patch('gepify.providers.playlists.get_playlist',
+                side_effect=lambda *args: {
+                    'path': 'playlist.zip',
+                    'checksum': 'old checkum'})
+    @mock.patch('gepify.providers.playlists.download_playlist.delay')
+    def test_download_playlist_if_playlist_has_changed(self, *args):
+        self.login()
+        response = self.client.post(
+            url_for('deezer.download_playlist'),
+            data={'playlist_id': '1', 'format': 'mp3'})
+        self.assert200(response)
+        self.assertIn(b'Your playlist is getting downloaded', response.data)

@@ -14,5 +14,8 @@ env:
   - SPOTIFY_REDIRECT_URI='http://localhost:5000/spotify/callback'
   - CELERY_BACKEND='redis://localhost'
   - CELERY_BROKER_URL='amqp://localhost'
+  - DEEZER_APP_ID='random id'
+  - DEEZER_SECRET='not really secret'
+  - DEEZER_REDIRECT_URI='http://localhost:5000/deezer/callback'
 services:
   - redis-server

@@ -57,6 +57,10 @@ Here are the configuration options:
    If you use Redis on you machine with default options you can set it to `redis://localhost`.
  - CELERY_BROKER_URL: [the broker used by celery](http://docs.celeryproject.org/en/latest/getting-started/first-steps-with-celery.html#choosing-a-broker).
    If you use Rabbit-MQ on you machine with default options you can set it to `amqp://localhost`.
+ - SOUNDCLOUD_CLIENT_ID: your soundcloud application id. You can get one from [soundcloud's developpers page](https://developers.soundcloud.com/)
+ - DEEZER_APP_ID: your deezer application id. You can get one from [deezer's developpers page](http://developers.deezer.com/myapps)
+ - DEEZER_SECRET: the deezer client secret. 
+ - DEEZER_REDIRECT_URI: the redirect uri, as described in the OAuth2 specification.
 
 Running the server
 ------------------

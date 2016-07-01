@@ -24,7 +24,7 @@ def login():
     query_parameters = {
         'app_id': DEEZER_APP_ID,
         'redirect_uri': DEEZER_REDIRECT_URI,
-        'perms': '',
+        'perms': 'basic_access',
         'state': state,
     }
 

@@ -65,11 +65,11 @@ Before running the web server you need to run the [celery](http://www.celeryproj
 You should have it installed after installing the dependencies. Open a new terminal (don't forget to `workon`
 your virtualenv if you created one):
 
-    celery -A gepify.celery worker --loglevel=info
+    celery -A gepify.celery worker --loglevel=info -f celery.log
 
 You also need to run celery beat to run periodic tasks, so open another terminal and run:
 
-    celery -A gepify beat
+    celery -A gepify beat -f beat.log
 
 Now you can start the webserver in a new terminal:
 

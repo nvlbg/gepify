@@ -3,12 +3,14 @@ from gepify.celery import celery_app
 from . import youtube, songs
 from .songs import SUPPORTED_FORMATS
 from celery import chord
+from celery.utils.log import get_task_logger
 import zipfile
 from hashlib import md5
 import os
 import time
 
 cache = RedisCache(key_prefix='playlist_', default_timeout=0)
+logger = get_task_logger(__name__)
 
 
 def get_playlist(service, playlist, format):
@@ -29,6 +31,7 @@ def checksum(tracks):
 
 @celery_app.task
 def handle_error(request, exc, traceback, playlist_cache_key):
+    logger.error('An error occured while trying to download a playlist')
     cache.delete(playlist_cache_key)
 
 
@@ -59,8 +62,13 @@ def download_playlist(playlist, service, provider='youtube', format='mp3'):
     playlist_checksum = checksum(playlist['tracks'])
     playlist_data = cache.get(playlist_cache_key)
 
-    if playlist_data == 'downloading' or (playlist_data is not None and
-       playlist_data['checksum'] == playlist_checksum):
+    if playlist_data == 'downloading':
+        logger.info(
+            'Attempt to download a playlist in the process of downloading')
+        return
+    elif (playlist_data is not None and
+          playlist_data['checksum'] == playlist_checksum):
+        logger.info('Attempt to download an already downloaded playlist')
         return
 
     cache.set(playlist_cache_key, 'downloading')
@@ -98,3 +106,4 @@ def clean_playlists():
         if now - last_modified > 30*60:  # 30 minutes
             os.remove(path_to_playlist)
             cache.delete(playlist[:-4])
+            logger.info('Deleting old playlist: {}'.format(path_to_playlist))

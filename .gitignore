@@ -6,8 +6,10 @@ gepify.egg-info/
 songs/*
 playlists/*
 
-# server log file
+# server log files
 server.log
+celery.log
+beat.log
 
 # coverage files
 .coverage

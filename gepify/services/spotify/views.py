@@ -16,7 +16,6 @@ from gepify.providers import (
 @spotify_service.route('/')
 @login_required
 def index():
-    current_app.logger.error('test error')
     playlists = models.get_playlists()
     return render_template('show_playlists.html',
                            title='Spotify playlists',

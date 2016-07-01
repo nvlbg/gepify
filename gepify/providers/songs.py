@@ -1,8 +1,10 @@
 from werkzeug.contrib.cache import RedisCache
 from gepify.celery import celery_app
+from celery.utils.log import get_task_logger
 from . import youtube, soundcloud, SUPPORTED_FORMATS, MIMETYPES
 
 cache = RedisCache(key_prefix='song_info_', default_timeout=0)
+logger = get_task_logger(__name__)
 
 
 def get_song(song_name):
@@ -43,8 +45,15 @@ def download_song(song_name, provider='youtube', format='mp3'):
 
     song = get_song(song_name)
 
-    if format in song['files'] and song['files'][format] == 'downloading':
-        return
+    if format in song['files']:
+        if song['files'][format] == 'downloading':
+            logger.info(
+                'Attempt to download a song in the process of downloading')
+            return
+        elif song['files'][format] is not None:
+            logger.info('Attempt to download already downloaded song.'
+                        'Cache: {}'.format(song['files'][format]))
+            return
 
     song['files'][format] = 'downloading'
     cache.set(song_name, song)

@@ -13,18 +13,27 @@ class MockResponse:
 
 
 def mocked_deezer_api_get(*args, **kwargs):
-    assert args[0].startswith(
-        'https://connect.deezer.com/oauth/access_token.php')
-    params = parse.parse_qs(parse.urlparse(args[0]).query)
-    assert params['output'][0] == 'json'
+    if args[0].startswith(
+            'https://connect.deezer.com/oauth/access_token.php'):
+        params = parse.parse_qs(parse.urlparse(args[0]).query)
+        assert params['output'][0] == 'json'
 
-    if params['code'][0] == 'dummy code':
-        return MockResponse({
-            'access_token': 'dummy token',
-            'expires': 60
-        }, 200)
+        if params['code'][0] == 'dummy code':
+            return MockResponse({
+                'access_token': 'dummy token',
+                'expires': 60
+            }, 200)
 
-    return MockResponse({}, 500)
+        return MockResponse({}, 500)
+    elif args[0].startswith(
+            'http://api.deezer.com/user/me'):
+        params = parse.parse_qs(parse.urlparse(args[0]).query)
+        assert params['access_token'][0] == 'dummy token'
+
+        return MockResponse({'id': 'dummy_user'}, 200)
+    elif args[0].startswith(
+            'http://api.deezer.com/user/dummy_user/playlists'):
+        return MockResponse({'data': []}, 200)
 
 
 class ProfileMixin():
@@ -173,7 +182,8 @@ class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
                       b'Please, try again.', response.data)
         self.assertEqual(get.call_count, 1)
 
-    def test_logout(self):
+    @mock.patch('requests.get', side_effect=mocked_deezer_api_get)
+    def test_logout(self, *args):
         response = self.client.get(url_for('deezer.logout'))
         self.assertRedirects(response, url_for('views.index'))
         response = self.client.get(url_for('deezer.index'))

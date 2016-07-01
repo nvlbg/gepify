@@ -13,6 +13,7 @@ def login_required(f):
         if access_token is None or expires_at is None or now >= expires_at:
             session.pop('deezer_access_token', None)
             session.pop('deezer_expires_at', None)
+            session.pop('deezer_user_id', None)
             return redirect(url_for('deezer.login'))
 
         return f(*args, **kwargs)

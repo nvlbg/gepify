@@ -17,9 +17,12 @@ from pprint import pprint
 @login_required
 def index():
     playlists = models.get_playlists()
-    return render_template('show_playlists.html',
-                           title='Spotify playlists',
-                           playlists=playlists)
+    return render_template(
+        'show_playlists.html',
+        service='spotify',
+        title='Spotify playlists',
+        playlists=playlists
+    )
 
 
 @spotify_service.route('/login')
@@ -85,9 +88,12 @@ def logout():
 @login_required
 def playlist(id):
     playlist = models.get_playlist(id)
-    return render_template('show_tracks.html',
-                           playlist=playlist,
-                           SUPPORTED_FORMATS=SUPPORTED_FORMATS)
+    return render_template(
+        'show_tracks.html',
+        service='spotify',
+        playlist=playlist,
+        SUPPORTED_FORMATS=SUPPORTED_FORMATS
+    )
 
 
 @spotify_service.route('/download_song/<song_name>/<format>')

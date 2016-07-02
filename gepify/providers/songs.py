@@ -38,8 +38,8 @@ def has_song_format(song_name, format):
     return song['files'][format] != 'downloading'
 
 
-@celery_app.task
-def download_song(song_name, provider='youtube', format='mp3'):
+@celery_app.task(bind=True)
+def download_song(self, song_name, provider='youtube', format='mp3'):
     if format not in SUPPORTED_FORMATS:
         raise ValueError('Format not supported: {}'.format(format))
 
@@ -47,8 +47,13 @@ def download_song(song_name, provider='youtube', format='mp3'):
 
     if format in song['files']:
         if song['files'][format] == 'downloading':
-            logger.info(
-                'Attempt to download a song in the process of downloading')
+            if self.request.chord is None:
+                logger.info(
+                    'Attempt to download a song in the process of downloading')
+            else:
+                logger.info(
+                    'Song is aleady downloading. Will retry in 5 seconds.')
+                self.retry(countdown=5)
             return
         elif song['files'][format] is not None:
             logger.info('Attempt to download already downloaded song.'

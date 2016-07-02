@@ -29,25 +29,11 @@ def request_access_token(code):
         raise RuntimeError('Could not get authentication token')
 
 
-def get_user_id():
-    user_id = session.get('deezer_user_id', None)
-    if user_id is None:
-        access_token = session.get('deezer_access_token', None)
-        if access_token is None:
-            raise RuntimeError('User not authenticated')
-
-        user_data_request = requests.get(
-            'http://api.deezer.com/user/me' +
-            '?access_token={}'.format(access_token)
-        )
-        if user_data_request.status_code != 200:
-            raise RuntimeError('Deezer API error')
-
-        user_data = json.loads(user_data_request.text)
-        user_id = user_data['id']
-        session['deezer_user_id'] = user_id
-
-    return user_id
+def get_access_token():
+    access_token = session.get('deezer_access_token', None)
+    if access_token is None:
+        raise RuntimeError('User not authenticated')
+    return access_token
 
 
 def get_song_name(track):
@@ -55,10 +41,13 @@ def get_song_name(track):
 
 
 def get_playlists():
-    user_id = get_user_id()
+    access_token = get_access_token()
 
     playlists_request = requests.get(
-        'http://api.deezer.com/user/{}/playlists'.format(user_id))
+        'http://api.deezer.com/user/me/playlists' +
+        '?access_token={}'.format(access_token)
+    )
+
     if playlists_request.status_code != 200:
         raise RuntimeError('Deezer API error')
 
@@ -81,10 +70,13 @@ def get_playlists():
 
 
 def get_playlist(playlist_id, keep_song_names=False):
-    user_id = get_user_id()
+    access_token = get_access_token()
 
     playlist_request = requests.get(
-        'http://api.deezer.com/playlist/{}'.format(playlist_id))
+        'http://api.deezer.com/playlist/{}'.format(playlist_id) +
+        '?access_token={}'.format(access_token)
+    )
+
     if playlist_request.status_code != 200:
         raise RuntimeError('Deezer API error')
 

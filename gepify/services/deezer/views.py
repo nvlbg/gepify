@@ -1,11 +1,11 @@
-from . import spotify_service
+from . import deezer_service
 from flask import (
-    session, render_template, redirect,
-    request, url_for, send_file, current_app
+    session, render_template, redirect, request,
+    url_for, send_file, current_app
 )
 from .view_decorators import login_required, logout_required
 from . import models
-from .models import SPOTIFY_CLIENT_ID, SPOTIFY_REDIRECT_URI
+from .models import DEEZER_APP_ID, DEEZER_REDIRECT_URI
 from ..util import get_random_str
 import urllib
 from gepify.providers import (
@@ -13,96 +13,88 @@ from gepify.providers import (
 )
 
 
-@spotify_service.route('/')
+@deezer_service.route('/')
 @login_required
 def index():
     playlists = models.get_playlists()
     return render_template(
         'show_playlists.html',
-        service='spotify',
-        title='Spotify playlists',
+        service='deezer',
+        title='Deezer playlists',
         playlists=playlists
     )
 
 
-@spotify_service.route('/login')
+@deezer_service.route('/login')
 @logout_required
 def login():
     state = get_random_str(16)
-    session['spotify_auth_state'] = state
+    session['deezer_auth_state'] = state
     query_parameters = {
-        'response_type': 'code',
-        'redirect_uri': SPOTIFY_REDIRECT_URI,
-        'scope': 'user-library-read',
+        'app_id': DEEZER_APP_ID,
+        'redirect_uri': DEEZER_REDIRECT_URI,
+        'perms': 'basic_access',
         'state': state,
-        'client_id': SPOTIFY_CLIENT_ID
     }
 
     query_parameters = '&'.join(['{}={}'.format(key, urllib.parse.quote(val))
                                  for key, val in query_parameters.items()])
-    auth_url = 'https://accounts.spotify.com/authorize/?' + query_parameters
+    auth_url = 'https://connect.deezer.com/oauth/auth.php?' + query_parameters
     return redirect(auth_url)
 
 
-@spotify_service.route('/callback')
+@deezer_service.route('/callback')
 def callback():
-    error = request.args.get('error', None)
+    error = request.args.get('error_reason', None)
     code = request.args.get('code', None)
     state = request.args.get('state', None)
-    stored_state = session.get('spotify_auth_state', None)
+    stored_state = session.get('deezer_auth_state', None)
 
     if error is not None or state is None or state != stored_state:
-        current_app.logger.error('Could not authenticate spotify user:' +
-                                 'error: {}'.format(error) +
-                                 'state: {}'.format(state) +
-                                 'stored_state: {}'.format(stored_state))
+        current_app.logger.error('Could not authenticate deezer user:\n' +
+                                 'error: {}\n'.format(error) +
+                                 'state: {}\n'.format(state) +
+                                 'stored_state: {}\n'.format(stored_state))
         return render_template(
             'show_message.html',
             message='There was an error while trying to authenticate you.'
                     'Please, try again.'), 503
     else:
-        session.pop('spotify_auth_state', None)
-        payload = {
-            'grant_type': 'authorization_code',
-            'code': code,
-            'redirect_uri': SPOTIFY_REDIRECT_URI
-        }
-
+        session.pop('deezer_auth_state', None)
         try:
-            models.request_access_token(payload)
-            return redirect(url_for('spotify.index'))
+            models.request_access_token(code)
+            return redirect(url_for('deezer.index'))
         except Exception as e:
             current_app.logger.error(
-                'Could not authenticate spotify user: {}'.format(e))
+                'Could not authenticate deezer user: {}'.format(e))
             return render_template(
                 'show_message.html',
                 message='There was an error while trying to authenticate you.'
                         'Please, try again.'), 503
 
 
-@spotify_service.route('/logout')
+@deezer_service.route('/logout')
 def logout():
-    session.pop('spotify_access_token', None)
-    session.pop('spotify_refresh_token', None)
-    session.pop('spotify_expires_at', None)
-    session.pop('spotify_username', None)
+    session.pop('deezer_access_token', None)
+    session.pop('deezer_expires_at', None)
+    session.pop('deezer_user_id', None)
 
     return redirect(url_for('views.index'))
 
 
-@spotify_service.route('/playlist/<id>')
+@deezer_service.route('/playlist/<id>')
 @login_required
 def playlist(id):
     playlist = models.get_playlist(id)
     return render_template(
         'show_tracks.html',
-        service='spotify',
+        service='deezer',
         playlist=playlist,
         SUPPORTED_FORMATS=SUPPORTED_FORMATS
     )
 
 
-@spotify_service.route('/download_song/<song_name>/<format>')
+@deezer_service.route('/download_song/<song_name>/<format>')
 @login_required
 def download_song(song_name, format):
     if format not in SUPPORTED_FORMATS:
@@ -129,7 +121,7 @@ def download_song(song_name, format):
     )
 
 
-@spotify_service.route('/download_playlist', methods=['POST'])
+@deezer_service.route('/download_playlist', methods=['POST'])
 @login_required
 def download_playlist():
     playlist_id = request.form['playlist_id']
@@ -144,16 +136,16 @@ def download_playlist():
             'show_message.html', message='Unsupported format'), 400
 
     playlist = models.get_playlist(playlist_id, keep_song_names=True)
-    if not playlists.has_playlist('spotify', playlist_id, format):
-        playlists.download_playlist.delay(playlist, 'spotify', format=format)
+    if not playlists.has_playlist('deezer', playlist_id, format):
+        playlists.download_playlist.delay(playlist, 'deezer', format=format)
         return render_template('show_message.html',
                                message='Your playlist is getting downloaded')
 
     playlist_checksum = playlists.checksum(playlist['tracks'])
-    playlist_data = playlists.get_playlist('spotify', playlist_id, format)
+    playlist_data = playlists.get_playlist('deezer', playlist_id, format)
 
     if playlist_data['checksum'] != playlist_checksum:
-        playlists.download_playlist.delay(playlist, 'spotify', format=format)
+        playlists.download_playlist.delay(playlist, 'deezer', format=format)
         return render_template('show_message.html',
                                message='Your playlist is getting downloaded')
 

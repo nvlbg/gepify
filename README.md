@@ -4,14 +4,9 @@ Gepify [![Build Status](https://travis-ci.org/nvlbg/gepify.svg?branch=master)](h
 Download your online playlists
 ------------------------------
 
-This project is still in development. Once it is finished it will have the following features:
-
-- Login via spotify (and some other services)
-- View your playlists
-- Download a song from a playlist
-- Download all songs from a playlist
-  - via youtube and some other providers
-  - you can choose the audio format of the songs - mp3, flac, ...
+With this tool you can download your spotify and deezer playlists. The songs are downloaded from youtube or soundcloud.
+If you want support for other service or provider please [open an issue](https://github.com/nvlbg/gepify/issues). You can also download
+individual songs from your playlists. The supported formats for now are mp3, ogg and opus.
 
 Installing
 ----------

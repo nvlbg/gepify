@@ -1,7 +1,3 @@
-body {
-    padding-top: 50px;
-}
-
 .main {
     padding: 40px 15px;
 }
@@ -19,13 +15,35 @@ body {
     font-size: 3em;
 }
 
+.description {
+    text-align: center;
+    margin-bottom: 100px;
+    font-size: 1.5em;
+}
+
+.logout {
+    display: block;
+    margin-top: -70px;
+    margin-bottom: 100px;
+    text-transform: uppercase;
+    text-align: center;
+    font-size: 1.6em;
+    color: rgb(51, 51, 51);
+}
+
+.logout:hover {
+    color: rgb(41, 41, 41);
+}
+
 .thumbnail h3 {
     margin: 4px;
+    white-space: nowrap;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
 }
 
 .thumbnail a {
     color: rgb(51, 51, 51);
-    white-space: nowrap;
 }
 
 .thumbnail a:hover {

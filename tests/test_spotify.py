@@ -2,7 +2,6 @@ import gepify
 from . import GepifyTestCase
 from flask import url_for, session, g
 import spotipy
-from werkzeug.contrib.cache import NullCache
 from urllib import parse
 from unittest import mock
 from gepify.services import spotify
@@ -209,7 +208,6 @@ class SpotifyDecoratorsTestCase(GepifyTestCase, ProfileMixin):
 
 class SpotifyModelsTestCase(GepifyTestCase):
     def setUp(self):
-        spotify.models.cache = NullCache()
         g.spotipy = mock.Mock(spec=spotipy.Spotify)
         g.spotipy.me = mock.MagicMock(name='me')
         g.spotipy.me.return_value = {'id': 'test_user'}
@@ -336,10 +334,6 @@ class SpotifyModelsTestCase(GepifyTestCase):
 
 
 class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
-    @classmethod
-    def setUpClass(cls):
-        spotify.models.cache = NullCache()
-
     @classmethod
     def tearDownClass(cls):
         if os.path.isfile('test song.mp3'):

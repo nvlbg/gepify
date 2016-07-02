@@ -1,6 +1,5 @@
 from flask import session, g
 import gepify.providers.songs as songs
-from werkzeug.contrib.cache import RedisCache
 import os
 import base64
 import requests
@@ -12,8 +11,6 @@ SPOTIFY_CLIENT_SECRET = os.environ.get('SPOTIFY_CLIENT_SECRET')
 SPOTIFY_REDIRECT_URI = os.environ.get('SPOTIFY_REDIRECT_URI')
 SPOTIFY_AUTHORIZATION_DATA = base64.b64encode(bytes(
     SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET, 'utf-8')).decode('utf-8')
-
-cache = RedisCache(key_prefix='spotify_')
 
 
 def request_access_token(payload):
@@ -56,51 +53,66 @@ def get_song_name(track):
 
 def get_playlists():
     username = get_username()
+    result = g.spotipy.user_playlists(username)
 
-    playlists = cache.get('user_playlists_{}'.format(username))
-    if playlists is None:
-        playlists = []
-        sp = g.spotipy
-        results = sp.user_playlists(username)
+    playlists = []
+    for item in result['items']:
+        playlist = {
+            'id': '{}:{}'.format(item['owner']['id'], item['id']),
+            'images': item['images'],
+            'name': item['name'],
+            'num_tracks': item['tracks']['total']
+        }
+        playlists.append(playlist)
 
-        for item in results['items']:
-            playlist = {
-                'id': '{}:{}'.format(item['owner']['id'], item['id']),
-                'images': item['images'],
-                'name': item['name'],
-                'num_tracks': item['tracks']['total']
-            }
-            playlists.append(playlist)
-
-        # results = sp.current_user_saved_albums()['items']
-
-        # for item in results:
-        #     playlists.append(item['album']['name'])
-        cache.set('user_playlists_{}'.format(username),
-                  playlists, timeout=5*60)
+    result = g.spotipy.current_user_saved_albums()['items']
+    for item in result:
+        playlist = {
+            'id': 'album:{}'.format(item['album']['id']),
+            'images': item['album']['images'],
+            'name': item['album']['name'],
+            'num_tracks': item['album']['tracks']['total']
+        }
+        playlists.append(playlist)
 
     return playlists
 
 
+def _get_playlist(username, playlist_id):
+    result = g.spotipy.user_playlist(username, playlist_id)
+    playlist = {
+        'id': '{}:{}'.format(username, playlist_id),
+        'name': result['name'],
+        'description': result['description'],
+        'tracks': []
+    }
+
+    for item in result['tracks']['items']:
+        playlist['tracks'].append(get_song_name(item['track']))
+
+    return playlist
+
+
+def _get_album(album_id):
+    result = g.spotipy.album(album_id)
+    playlist = {
+        'id': 'album:{}'.format(album_id),
+        'name': result['name'],
+        'tracks': []
+    }
+
+    for track in result['tracks']['items']:
+        playlist['tracks'].append(get_song_name(track))
+
+    return playlist
+
+
 def get_playlist(playlist_id, keep_song_names=False):
-    playlist = cache.get('user_playlist_{}'.format(playlist_id))
-    if playlist is None:
-        sp = g.spotipy
-        username, pid = playlist_id.split(':')
-        result = sp.user_playlist(username, pid)
-        playlist = {
-            'id': playlist_id,
-            'name': result['name'],
-            'description': result['description'],
-            'tracks': []
-        }
-
-        for item in result['tracks']['items']:
-            track = item['track']
-            playlist['tracks'].append(get_song_name(track))
-
-        cache.set('user_playlist_{}'.format(playlist_id),
-                  playlist, timeout=5*60)
+    username, playlist_id = playlist_id.split(':')
+    if username == 'album':
+        playlist = _get_album(playlist_id)
+    else:
+        playlist = _get_playlist(username, playlist_id)
 
     # get latest info about the tracks from cache
     # in case a song's files have changed
@@ -115,9 +127,5 @@ def get_playlist(playlist_id, keep_song_names=False):
 
 def get_playlist_name(playlist_id):
     username = get_username()
-
-    playlist = cache.get('user_playlist_{}'.format(playlist_id))
-    if playlist is None:
-        playlist = get_playlist(playlist_id, keep_song_names=True)
-
+    playlist = get_playlist(playlist_id, keep_song_names=True)
     return playlist['name']

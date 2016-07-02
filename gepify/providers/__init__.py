@@ -1,5 +1,6 @@
-SUPPORTED_FORMATS = ['mp3', 'ogg']
+SUPPORTED_FORMATS = ['mp3', 'ogg', 'opus']
 MIMETYPES = {
     'mp3': 'audio/mpeg',
-    'ogg': 'audio/ogg'
+    'ogg': 'audio/ogg',
+    'opus': 'audio/opus'
 }

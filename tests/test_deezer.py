@@ -154,7 +154,8 @@ class DeezerModelsTestCase(GepifyTestCase, ProfileMixin):
     def test_request_access_token_with_deezer_error(self, get):
         self.assertNotIn('deezer_access_token', session)
         self.assertNotIn('deezer_expires_at', session)
-        with self.assertRaises(RuntimeError):
+        with self.assertRaisesRegex(
+                RuntimeError, 'Could not get authentication token'):
             deezer.models.request_access_token('wrong code')
         self.assertEqual(get.call_count, 1)
 
@@ -226,7 +227,8 @@ class DeezerModelsTestCase(GepifyTestCase, ProfileMixin):
             self.assertEqual(playlist['name'], 'Playlist 1')
             self.assertEqual(len(playlist['tracks']), 1)
             self.assertEqual(get_song.call_count, len(playlist['tracks']))
-            self.assertEqual(playlist['tracks'][0]['name'], 'Artist 1 - Song 1')
+            self.assertEqual(
+                playlist['tracks'][0]['name'], 'Artist 1 - Song 1')
 
             with self.assertRaisesRegex(RuntimeError, 'Deezer API error'):
                 deezer.models.get_playlist('missing id')

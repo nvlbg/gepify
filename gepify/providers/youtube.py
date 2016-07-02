@@ -27,6 +27,15 @@ downloaders = {
             'preferredquality': '192',
         }],
     }),
+    'opus': youtube_dl.YoutubeDL({
+        'format': 'bestaudio/best',
+        'outtmpl': 'songs/%(id)s.%(ext)s',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'opus',
+            'preferredquality': '192',
+        }],
+    }),
 }
 
 

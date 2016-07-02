@@ -36,10 +36,9 @@ def request_access_token(payload):
 
 
 def get_username():
-    sp = g.spotipy
     username = session.get('spotify_username', None)
     if username is None:
-        username = sp.me()['id']
+        username = g.spotipy.me()['id']
         session['spotify_username'] = username
 
     return username
@@ -56,30 +55,37 @@ def get_playlists():
     result = g.spotipy.user_playlists(username)
 
     playlists = []
-    for item in result['items']:
-        playlist = {
-            'id': '{}:{}'.format(item['owner']['id'], item['id']),
-            'images': item['images'],
-            'name': item['name'],
-            'num_tracks': item['tracks']['total']
-        }
-        playlists.append(playlist)
+    while result is not None:
+        for item in result['items']:
+            playlist = {
+                'id': '{}:{}'.format(item['owner']['id'], item['id']),
+                'images': item['images'],
+                'name': item['name'],
+                'num_tracks': item['tracks']['total']
+            }
+            playlists.append(playlist)
 
-    result = g.spotipy.current_user_saved_albums()['items']
-    for item in result:
-        playlist = {
-            'id': 'album:{}'.format(item['album']['id']),
-            'images': item['album']['images'],
-            'name': item['album']['name'],
-            'num_tracks': item['album']['tracks']['total']
-        }
-        playlists.append(playlist)
+        result = g.spotipy.next(result) if result['next'] else None
+
+    result = g.spotipy.current_user_saved_albums()
+    while result is not None:
+        for item in result['items']:
+            playlist = {
+                'id': 'album:{}'.format(item['album']['id']),
+                'images': item['album']['images'],
+                'name': item['album']['name'],
+                'num_tracks': item['album']['tracks']['total']
+            }
+            playlists.append(playlist)
+
+        result = g.spotipy.next(result) if result['next'] else None
 
     return playlists
 
 
 def _get_playlist(username, playlist_id):
-    result = g.spotipy.user_playlist(username, playlist_id)
+    result = g.spotipy.user_playlist(username, playlist_id,
+                                     'name,description,tracks')
     playlist = {
         'id': '{}:{}'.format(username, playlist_id),
         'name': result['name'],
@@ -87,8 +93,11 @@ def _get_playlist(username, playlist_id):
         'tracks': []
     }
 
-    for item in result['tracks']['items']:
-        playlist['tracks'].append(get_song_name(item['track']))
+    tracks = result['tracks']
+    while tracks is not None:
+        for item in tracks['items']:
+            playlist['tracks'].append(get_song_name(item['track']))
+        tracks = g.spotipy.next(tracks) if tracks['next'] else None
 
     return playlist
 
@@ -101,8 +110,11 @@ def _get_album(album_id):
         'tracks': []
     }
 
-    for track in result['tracks']['items']:
-        playlist['tracks'].append(get_song_name(track))
+    tracks = result['tracks']
+    while tracks is not None:
+        for track in tracks['items']:
+            playlist['tracks'].append(get_song_name(track))
+        tracks = g.spotipy.next(tracks) if tracks['next'] else None
 
     return playlist
 

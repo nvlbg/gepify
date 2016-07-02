@@ -1,9 +1,12 @@
 {% extends "layout.html" %}
+
 {% block content %}
-  <h2>{{ playlist['name'] }}</h2>
+  <h2 class="subtitle">{{ playlist['name'] }}</h2>
+
   {% if playlist['description'] %}
   <h3>{{ playlist['description'] }}</h3>
   {% endif %}
+
   <ul class="songs-list">
   {% for track in playlist['tracks'] %}
     <li>

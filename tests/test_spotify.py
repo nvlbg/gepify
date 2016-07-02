@@ -65,10 +65,20 @@ class MockSpotipy:
     def user_playlists(self, username):
         return {
             'items': [
-                {'id': '1', 'images': [], 'name': 'Playlist 1',
-                 'tracks': {'total': 10}},
-                {'id': '2', 'images': [], 'name': 'Playlist 2',
-                 'tracks': {'total': 20}},
+                {
+                    'id': '1',
+                    'images': [{'url': 'some url'}],
+                    'name': 'Playlist 1',
+                    'tracks': {'total': 10},
+                    'owner': {'id': 'test_user'}
+                },
+                {
+                    'id': '2',
+                    'images': [{'url': 'some url'}],
+                    'name': 'Playlist 2',
+                    'tracks': {'total': 20},
+                    'owner': {'id': 'test_user'}
+                },
             ]
         }
 
@@ -207,9 +217,9 @@ class SpotifyModelsTestCase(GepifyTestCase):
         g.spotipy.user_playlists.return_value = {
             'items': [
                 {'id': '1', 'images': [], 'name': 'Playlist 1',
-                 'tracks': {'total': 10}},
+                 'tracks': {'total': 10}, 'owner': {'id': 'test_user'}},
                 {'id': '2', 'images': [], 'name': 'Playlist 2',
-                 'tracks': {'total': 20}},
+                 'tracks': {'total': 20}, 'owner': {'id': 'test_user'}},
             ]
         }
         g.spotipy.user_playlist = mock.MagicMock(name='user_playlist')
@@ -297,8 +307,9 @@ class SpotifyModelsTestCase(GepifyTestCase):
         self.assertEqual(playlists[1]['name'], 'Playlist 2')
 
     def test_get_playlist_with_keeping_song_names(self):
-        playlist = spotify.models.get_playlist('1', keep_song_names=True)
-        self.assertEqual(playlist['id'], '1')
+        playlist = spotify.models.get_playlist('test_user:1',
+                                               keep_song_names=True)
+        self.assertEqual(playlist['id'], 'test_user:1')
         self.assertEqual(playlist['description'], 'desc')
         self.assertEqual(playlist['name'], 'Playlist 1')
         self.assertIn('tracks', playlist.keys())
@@ -309,8 +320,8 @@ class SpotifyModelsTestCase(GepifyTestCase):
     @mock.patch('gepify.providers.songs.get_song',
                 side_effect=lambda song_name: {'name': song_name})
     def test_get_playlist_without_keeping_song_names(self, get_song):
-        playlist = spotify.models.get_playlist('1')
-        self.assertEqual(playlist['id'], '1')
+        playlist = spotify.models.get_playlist('test_user:1')
+        self.assertEqual(playlist['id'], 'test_user:1')
         self.assertEqual(playlist['description'], 'desc')
         self.assertEqual(playlist['name'], 'Playlist 1')
         self.assertIn('tracks', playlist.keys())
@@ -320,7 +331,8 @@ class SpotifyModelsTestCase(GepifyTestCase):
         self.assertEqual(playlist['tracks'][1]['name'], 'Artist 2 - Song 2')
 
     def test_get_playlist_name(self):
-        self.assertEqual(spotify.models.get_playlist_name('1'), 'Playlist 1')
+        self.assertEqual(
+            spotify.models.get_playlist_name('test_user:1'), 'Playlist 1')
 
 
 class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
@@ -418,7 +430,8 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
                 side_effect=lambda song_name: {'name': song_name, 'files': {}})
     def test_get_playlist(self, get_song, Spotify, post):
         self.login()
-        response = self.client.get(url_for('spotify.playlist', id='1'))
+        response = self.client.get(
+            url_for('spotify.playlist', id='test_user:1'))
         self.assert200(response)
         self.assertIn(b'Playlist 1', response.data)
 
@@ -473,14 +486,14 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         response = self.client.post(url_for('spotify.download_playlist'))
         self.assertEqual(response.status_code, 400)
         response = self.client.post(url_for('spotify.download_playlist'),
-                                    data={'playlist_id': 'some id'})
+                                    data={'playlist_id': 'test_user:some id'})
         self.assertEqual(response.status_code, 400)
         response = self.client.post(url_for('spotify.download_playlist'),
                                     data={'format': 'mp3'})
         self.assertEqual(response.status_code, 400)
         response = self.client.post(
             url_for('spotify.download_playlist'),
-            data={'playlist_id': 'some id', 'format': 'wav'})
+            data={'playlist_id': 'test_user:some id', 'format': 'wav'})
         self.assertEqual(response.status_code, 400)
         self.assertIn(b'Unsupported format', response.data)
 
@@ -494,7 +507,7 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.login()
         response = self.client.post(
             url_for('spotify.download_playlist'),
-            data={'playlist_id': '1', 'format': 'mp3'})
+            data={'playlist_id': 'test_user:1', 'format': 'mp3'})
         self.assert200(response)
         self.assertIn(b'Your playlist is getting downloaded', response.data)
 
@@ -513,7 +526,7 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.login()
         response = self.client.post(
             url_for('spotify.download_playlist'),
-            data={'playlist_id': '1', 'format': 'mp3'})
+            data={'playlist_id': 'test_user:1', 'format': 'mp3'})
         self.assert200(response)
         self.assertEqual(b'some data', response.data)
         self.assertEqual(response.content_type, 'application/zip')
@@ -532,6 +545,6 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.login()
         response = self.client.post(
             url_for('spotify.download_playlist'),
-            data={'playlist_id': '1', 'format': 'mp3'})
+            data={'playlist_id': 'test_user:1', 'format': 'mp3'})
         self.assert200(response)
         self.assertIn(b'Your playlist is getting downloaded', response.data)

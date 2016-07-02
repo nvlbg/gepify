@@ -70,7 +70,10 @@ def get_playlists():
             playlist = {
                 'id': item['id'],
                 'name': item['title'],
-                'num_tracks': item['nb_tracks']
+                'num_tracks': item['nb_tracks'],
+                'images': [
+                    {'url': item['picture_medium']}
+                ]
             }
             playlists.append(playlist)
 

@@ -37,13 +37,15 @@ def mocked_deezer_api_get(url):
                   'id': '1677006641',
                   'title': 'New Urban Pop HITS (Justin Timberlake, Sia...)',
                   'nb_tracks': 48,
-                  'type': 'playlist'
+                  'type': 'playlist',
+                  'picture_medium': 'some url'
                 },
                 {
                   'id': '164716031',
                   'title': 'Duets',
                   'nb_tracks': 47,
-                  'type': 'playlist'
+                  'type': 'playlist',
+                  'picture_medium': 'some url'
                 }
             ]
         }, 200)

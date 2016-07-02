@@ -1,10 +1,25 @@
 {% extends "layout.html" %}
 
 {% block content %}
-  <h1>Playlists</h1>
-  <ul class="playlists-list">
-  {% for playlist in playlists %}
-    <li><a href="{{ url_for('{}.playlist'.format(service), id=playlist['id']) }}">{{ playlist['name'] }}</a> - {{ playlist['num_tracks'] }} tracks</li>
-  {% endfor %}
-  </ul>
+  <h2 class="subtitle">Playlists</h2>
+
+  <div class="row">
+      {% for playlist in playlists %}
+        <div class="col-xs-6 col-md-3">
+          <div class="thumbnail col-md-12">
+            <a href="{{ url_for('{}.playlist'.format(service), id=playlist['id']) }}">
+              <img src="{{ playlist['images'][0]['url'] }}">
+            </a>
+            <div class="caption">
+              <h3>
+                <a href="{{ url_for('{}.playlist'.format(service), id=playlist['id']) }}">
+                  {{ playlist['name'] }}
+                </a>
+              </h3>
+              <small>{{ playlist['num_tracks'] }} songs</small>
+            </div>
+          </div>
+        </div>
+      {% endfor %}          
+  </div>
 {% endblock %}

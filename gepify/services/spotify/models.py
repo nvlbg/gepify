@@ -65,7 +65,7 @@ def get_playlists():
 
         for item in results['items']:
             playlist = {
-                'id': item['id'],
+                'id': '{}:{}'.format(item['owner']['id'], item['id']),
                 'images': item['images'],
                 'name': item['name'],
                 'num_tracks': item['tracks']['total']
@@ -83,12 +83,11 @@ def get_playlists():
 
 
 def get_playlist(playlist_id, keep_song_names=False):
-    username = get_username()
-
     playlist = cache.get('user_playlist_{}'.format(playlist_id))
     if playlist is None:
         sp = g.spotipy
-        result = sp.user_playlist(username, playlist_id)
+        username, pid = playlist_id.split(':')
+        result = sp.user_playlist(username, pid)
         playlist = {
             'id': playlist_id,
             'name': result['name'],

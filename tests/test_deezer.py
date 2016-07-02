@@ -13,6 +13,10 @@ class MockResponse:
         self.status_code = status_code
 
 
+def mocked_deezer_api_get_404(url):
+    return MockResponse({}, 404)
+
+
 def mocked_deezer_api_get(url):
     if url.startswith('https://connect.deezer.com/oauth/access_token.php'):
         params = parse.parse_qs(parse.urlparse(url).query)
@@ -25,12 +29,7 @@ def mocked_deezer_api_get(url):
             }, 200)
 
         return MockResponse({}, 500)
-    elif url.startswith('http://api.deezer.com/user/me'):
-        params = parse.parse_qs(parse.urlparse(url).query)
-        if params['access_token'][0] == 'dummy token':
-            return MockResponse({'id': 'dummy_user'}, 200)
-        return MockResponse({}, 403)
-    elif url.startswith('http://api.deezer.com/user/dummy_user/playlists'):
+    elif url.startswith('http://api.deezer.com/user/me/playlists'):
         return MockResponse({
             'data': [
                 {
@@ -161,23 +160,13 @@ class DeezerModelsTestCase(GepifyTestCase, ProfileMixin):
             deezer.models.request_access_token('wrong code')
         self.assertEqual(get.call_count, 1)
 
-    @mock.patch('requests.get', side_effect=mocked_deezer_api_get)
-    def test_get_user_id(self, get):
+    def test_get_access_token(self):
         with self.assertRaisesRegex(RuntimeError, 'User not authenticated'):
-            deezer.models.get_user_id()
+            deezer.models.get_access_token()
 
         with self.client:
-            self.login()
-            self.assertEqual(deezer.models.get_user_id(), 'dummy_user')
-            self.assertEqual(get.call_count, 1)
-            get.reset_mock()
-            self.assertEqual(deezer.models.get_user_id(), 'dummy_user')
-            self.assertFalse(get.called)
-
-            with self.assertRaisesRegex(RuntimeError, 'Deezer API error'):
-                session['deezer_user_id'] = None
-                session['deezer_access_token'] = 'false token'
-                deezer.models.get_user_id()
+            session['deezer_access_token'] = 'dummy token'
+            self.assertEqual(deezer.models.get_access_token(), 'dummy token')
 
     def test_get_song_name(self):
         track = {
@@ -199,7 +188,10 @@ class DeezerModelsTestCase(GepifyTestCase, ProfileMixin):
             )
             self.assertEqual(playlists[1]['name'], 'Duets')
 
-            session['deezer_user_id'] = 'wrong user'
+    @mock.patch('requests.get', side_effect=mocked_deezer_api_get_404)
+    def test_get_playlists_with_deezer_error(self, *args):
+        with self.client:
+            self.login()
             with self.assertRaisesRegex(RuntimeError, 'Deezer API error'):
                 deezer.models.get_playlists()
 
@@ -326,7 +318,6 @@ class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
     @mock.patch('gepify.providers.songs.get_song',
                 side_effect=lambda song_name: {'name': song_name, 'files': {}})
     def test_get_playlist(self, *args):
-        self.app.debug = False
         self.login()
         response = self.client.get(url_for('deezer.playlist', id='1'))
         self.assert200(response)

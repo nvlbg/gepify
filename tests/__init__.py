@@ -7,7 +7,7 @@ class GepifyTestCase(TestCase):
     def create_app(self):
         self.app = gepify.create_app()
         self.app.config['TESTING'] = True
-        self.app.config['DEBUG'] = True
+        self.app.config['DEBUG'] = False
         self.app.config['PROPAGATE_EXCEPTIONS'] = False
         self.app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
         return self.app

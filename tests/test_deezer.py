@@ -318,6 +318,8 @@ class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
     @mock.patch('gepify.providers.songs.get_song',
                 side_effect=lambda song_name: {'name': song_name, 'files': {}})
     def test_get_playlist(self, *args):
+        # TODO: find the flask option that fixes this
+        self.app.debug = False
         self.login()
         response = self.client.get(url_for('deezer.playlist', id='1'))
         self.assert200(response)

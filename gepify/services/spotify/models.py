@@ -135,9 +135,3 @@ def get_playlist(playlist_id, keep_song_names=False):
         playlist['tracks'] = tracks
 
     return playlist
-
-
-def get_playlist_name(playlist_id):
-    username = get_username()
-    playlist = get_playlist(playlist_id, keep_song_names=True)
-    return playlist['name']

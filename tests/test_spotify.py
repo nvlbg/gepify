@@ -15,8 +15,7 @@ class MockResponse:
         self.status_code = status_code
 
 
-def mocked_spotify_api_post(*args, **kwargs):
-    url = args[0]
+def mocked_spotify_api_post(url, **kwargs):
     data = kwargs.get('data', None)
     headers = kwargs.get('headers', None)
 
@@ -62,52 +61,35 @@ class MockSpotipy:
         }
 
     def user_playlists(self, username):
-        return {
-            'items': [
-                {
-                    'id': '1',
-                    'images': [{'url': 'some url'}],
-                    'name': 'Playlist 1',
-                    'tracks': {'total': 10},
-                    'owner': {'id': 'test_user'}
-                },
-                {
-                    'id': '2',
-                    'images': [{'url': 'some url'}],
-                    'name': 'Playlist 2',
-                    'tracks': {'total': 20},
-                    'owner': {'id': 'test_user'}
-                },
-            ]
-        }
+        with open('tests/spotify_dump/spotify_user_playlists.json') as f:
+            return json.loads(f.read())
 
-    def user_playlist(self, username, playlist_id):
-        if playlist_id == '1':
-            return {
-                'name': 'Playlist 1',
-                'description': 'desc',
-                'tracks': {
-                    'items': [
-                        {'track':
-                            {'name': 'Song 1',
-                             'artists': [{'name': 'Artist 1'}]}},
-                        {'track':
-                            {'name': 'Song 2',
-                             'artists': [{'name': 'Artist 2'}]}}
-                    ]
-                }
-            }
+    def user_playlist(self, username, playlist_id, fields=None):
+        if username == 'test_user' and playlist_id == '1':
+            with open('tests/spotify_dump/spotify_user_playlist.json') as f:
+                return json.loads(f.read())
 
     def current_user_saved_albums(self):
-        return {
-            'items': [
-                {'album': {'name': 'Album 1'}}
-            ]
-        }
+        with open('tests/spotify_dump/'
+                  'spotify_current_user_saved_albums.json') as f:
+            return json.loads(f.read())
+
+    def album(self, album_id):
+        if album_id == '0AYlrY39QmCNwR4r1uzlv3':
+            with open('tests/spotify_dump/spotify_album.json') as f:
+                return json.loads(f.read())
+
+    def next(self, result):
+        if result['next'] == 'https://api.spotify.com/v1/users/aplusk' + \
+                             '/playlists/5ExcrV72XoJ6aQT8plfau3/' + \
+                             'tracks?offset=100&limit=100':
+            with open('tests/spotify_dump/spotify_next.json') as f:
+                return json.loads(f.read())
 
 
 class ProfileMixin():
-    def login(self):
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    def login(self, *args):
         login_response = self.client.get(url_for('spotify.login'))
         spotify_redirect = login_response.location
         self.assertTrue(spotify_redirect.startswith(
@@ -121,7 +103,8 @@ class ProfileMixin():
         self.assertRedirects(response, url_for('spotify.index'))
         return response
 
-    def logout(self):
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    def logout(self, *args):
         logout_response = self.client.get(url_for('spotify.logout'))
         self.assertRedirects(logout_response, url_for('views.index'))
         return logout_response
@@ -208,31 +191,7 @@ class SpotifyDecoratorsTestCase(GepifyTestCase, ProfileMixin):
 
 class SpotifyModelsTestCase(GepifyTestCase):
     def setUp(self):
-        g.spotipy = mock.Mock(spec=spotipy.Spotify)
-        g.spotipy.me = mock.MagicMock(name='me')
-        g.spotipy.me.return_value = {'id': 'test_user'}
-        g.spotipy.user_playlists = mock.MagicMock(name='user_playlists')
-        g.spotipy.user_playlists.return_value = {
-            'items': [
-                {'id': '1', 'images': [], 'name': 'Playlist 1',
-                 'tracks': {'total': 10}, 'owner': {'id': 'test_user'}},
-                {'id': '2', 'images': [], 'name': 'Playlist 2',
-                 'tracks': {'total': 20}, 'owner': {'id': 'test_user'}},
-            ]
-        }
-        g.spotipy.user_playlist = mock.MagicMock(name='user_playlist')
-        g.spotipy.user_playlist.return_value = {
-            'name': 'Playlist 1',
-            'description': 'desc',
-            'tracks': {
-                'items': [
-                    {'track':
-                        {'name': 'Song 1', 'artists': [{'name': 'Artist 1'}]}},
-                    {'track':
-                        {'name': 'Song 2', 'artists': [{'name': 'Artist 2'}]}}
-                ]
-            }
-        }
+        g.spotipy = MockSpotipy()
 
     def tearDown(self):
         g.spotipy = None
@@ -286,9 +245,7 @@ class SpotifyModelsTestCase(GepifyTestCase):
 
     def test_get_username(self):
         self.assertEqual(spotify.models.get_username(), 'test_user')
-        self.assertEqual(g.spotipy.me.call_count, 1)
         self.assertEqual(spotify.models.get_username(), 'test_user')
-        self.assertEqual(g.spotipy.me.call_count, 1)
 
     def test_get_song_name(self):
         track = {
@@ -300,37 +257,59 @@ class SpotifyModelsTestCase(GepifyTestCase):
 
     def test_get_playlists(self):
         playlists = spotify.models.get_playlists()
-        self.assertEqual(len(playlists), 2)
-        self.assertEqual(playlists[0]['name'], 'Playlist 1')
-        self.assertEqual(playlists[1]['name'], 'Playlist 2')
+        self.assertEqual(len(playlists), 25)
+        self.assertEqual(playlists[0]['name'], 'Starred')
+        self.assertEqual(playlists[-1]['name'], 'Bozdugan')
+
+    def test__get_playlist(self):
+        playlist = spotify.models._get_playlist('test_user', '1')
+        self.assertEqual(playlist['name'], 'Starred')
+        self.assertIsNone(playlist['description'])
+        self.assertEqual(playlist['id'], 'test_user:1')
+        self.assertEqual(len(playlist['tracks']), 200)
+
+    def test__get_album(self):
+        album = spotify.models._get_album('0AYlrY39QmCNwR4r1uzlv3')
+        self.assertEqual(album['name'], 'Bozdugan')
+        self.assertEqual(album['id'], 'album:0AYlrY39QmCNwR4r1uzlv3')
+        self.assertEqual(len(album['tracks']), 13)
 
     def test_get_playlist_with_keeping_song_names(self):
         playlist = spotify.models.get_playlist('test_user:1',
                                                keep_song_names=True)
         self.assertEqual(playlist['id'], 'test_user:1')
-        self.assertEqual(playlist['description'], 'desc')
-        self.assertEqual(playlist['name'], 'Playlist 1')
-        self.assertIn('tracks', playlist.keys())
-        self.assertEqual(len(playlist['tracks']), 2)
-        self.assertIn('Artist 1 - Song 1', playlist['tracks'])
-        self.assertIn('Artist 2 - Song 2', playlist['tracks'])
+        self.assertIsNone(playlist['description'])
+        self.assertEqual(playlist['name'], 'Starred')
+        self.assertEqual(len(playlist['tracks']), 200)
+        self.assertIn('Leona Lewis - Bleeding Love', playlist['tracks'])
+        self.assertIn('The National - Anyone’s Ghost', playlist['tracks'])
+
+        playlist = spotify.models.get_playlist('album:0AYlrY39QmCNwR4r1uzlv3',
+                                               keep_song_names=True)
+        self.assertEqual(playlist['name'], 'Bozdugan')
+        self.assertEqual(playlist['id'], 'album:0AYlrY39QmCNwR4r1uzlv3')
+        self.assertEqual(len(playlist['tracks']), 13)
 
     @mock.patch('gepify.providers.songs.get_song',
                 side_effect=lambda song_name: {'name': song_name})
     def test_get_playlist_without_keeping_song_names(self, get_song):
         playlist = spotify.models.get_playlist('test_user:1')
         self.assertEqual(playlist['id'], 'test_user:1')
-        self.assertEqual(playlist['description'], 'desc')
-        self.assertEqual(playlist['name'], 'Playlist 1')
-        self.assertIn('tracks', playlist.keys())
-        self.assertEqual(len(playlist['tracks']), 2)
-        self.assertEqual(get_song.call_count, 2)
-        self.assertEqual(playlist['tracks'][0]['name'], 'Artist 1 - Song 1')
-        self.assertEqual(playlist['tracks'][1]['name'], 'Artist 2 - Song 2')
+        self.assertIsNone(playlist['description'])
+        self.assertEqual(playlist['name'], 'Starred')
+        self.assertEqual(len(playlist['tracks']), 200)
+        self.assertEqual(get_song.call_count, len(playlist['tracks']))
+        self.assertEqual(playlist['tracks'][25]['name'],
+                         'Leona Lewis - Bleeding Love')
+        self.assertEqual(playlist['tracks'][42]['name'],
+                         'The National - Anyone’s Ghost')
 
-    def test_get_playlist_name(self):
-        self.assertEqual(
-            spotify.models.get_playlist_name('test_user:1'), 'Playlist 1')
+        get_song.reset_mock()
+        playlist = spotify.models.get_playlist('album:0AYlrY39QmCNwR4r1uzlv3')
+        self.assertEqual(playlist['name'], 'Bozdugan')
+        self.assertEqual(playlist['id'], 'album:0AYlrY39QmCNwR4r1uzlv3')
+        self.assertEqual(len(playlist['tracks']), 13)
+        self.assertEqual(get_song.call_count, len(playlist['tracks']))
 
 
 class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
@@ -342,22 +321,19 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         if os.path.isfile('playlist.zip'):
             os.remove('playlist.zip')
 
-    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
-    def test_index_if_not_logged_in(self, post):
+    def test_index_if_not_logged_in(self):
         response = self.client.get(url_for('spotify.index'))
         self.assertRedirects(response, url_for('spotify.login'))
 
-    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
     @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
-    def test_index_if_logged_in(self, Spotify, post):
+    def test_index_if_logged_in(self, *args):
         self.login()
         response = self.client.get(url_for('spotify.index'))
         self.assert200(response)
-        self.assertIn(b'Playlist 1', response.data)
-        self.assertIn(b'Playlist 2', response.data)
+        self.assertIn(b'Bozdugan', response.data)
 
     @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
-    def test_login(self, post):
+    def test_login(self, *args):
         response = self.client.get(url_for('spotify.login'))
         self.assertTrue(response.location.startswith(
                         'https://accounts.spotify.com/authorize/'))
@@ -368,7 +344,7 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
 
     @mock.patch('logging.Logger')
     @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
-    def test_login_callback(self, post, Logger):
+    def test_login_callback(self, post, *args):
         response = self.client.get(
             url_for('spotify.callback', error='access_denied'))
         self.assertEqual(response.status_code, 503)
@@ -393,7 +369,7 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
 
     @mock.patch('logging.Logger')
     @mock.patch('requests.post', side_effect=mocked_spotify_api_404)
-    def test_login_callback_with_spotify_error(self, post, Logger):
+    def test_login_callback_with_spotify_error(self, post, *args):
         with self.client.session_transaction() as sess:
             sess['spotify_auth_state'] = 'some state'
         response = self.client.get(
@@ -403,9 +379,8 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
                       b'Please, try again.', response.data)
         self.assertEqual(post.call_count, 1)
 
-    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
     @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
-    def test_logout(self, Spotify, post):
+    def test_logout(self, Spotify):
         response = self.client.get(url_for('spotify.logout'))
         self.assertRedirects(response, url_for('views.index'))
         response = self.client.get(url_for('spotify.index'))
@@ -418,19 +393,17 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         response = self.client.get(url_for('spotify.index'))
         self.assertRedirects(response, url_for('spotify.login'))
 
-    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
     @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
     @mock.patch('gepify.providers.songs.get_song',
                 side_effect=lambda song_name: {'name': song_name, 'files': {}})
-    def test_get_playlist(self, get_song, Spotify, post):
+    def test_get_playlist(self, get_song, Spotify):
         self.login()
         response = self.client.get(
             url_for('spotify.playlist', id='test_user:1'))
         self.assert200(response)
-        self.assertIn(b'Playlist 1', response.data)
+        self.assertIn(b'Use Somebody', response.data)
 
     @mock.patch('logging.Logger')
-    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
     def test_download_song_in_unsupported_format(self, *args):
         self.login()
         response = self.client.get(
@@ -439,13 +412,11 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertEqual(response.status_code, 400)
         self.assertIn(b'Unsupported format', response.data)
 
-    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
     @mock.patch('gepify.providers.songs.has_song_format',
                 side_effect=lambda song, format: False)
     @mock.patch('gepify.providers.songs.download_song.delay',
                 side_effect=lambda song, format: None)
-    def test_download_song_if_song_is_missing(self, download_song, has_song,
-                                              post):
+    def test_download_song_if_song_is_missing(self, *args):
         self.login()
         response = self.client.get(
             url_for('spotify.download_song',
@@ -453,14 +424,12 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assert200(response)
         self.assertIn(b'Your song has started downloading.', response.data)
 
-    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
     @mock.patch('gepify.providers.songs.has_song_format',
                 side_effect=lambda song, format: True)
     @mock.patch('gepify.providers.songs.get_song',
                 side_effect=lambda song: {
                     'name': song, 'files': {'mp3': song+'.mp3'}})
-    def test_download_song_if_song_is_not_missing(self, get_song, has_song,
-                                                  post):
+    def test_download_song_if_song_is_not_missing(self, *args):
         with open('test song.mp3', 'w+') as f:
             f.write('some data')
 
@@ -474,7 +443,6 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         response.close()
 
     @mock.patch('logging.Logger')
-    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
     def test_download_playlist_with_wrong_post_data(self, *args):
         self.login()
         response = self.client.post(url_for('spotify.download_playlist'))
@@ -491,13 +459,11 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertEqual(response.status_code, 400)
         self.assertIn(b'Unsupported format', response.data)
 
-    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
     @mock.patch('gepify.providers.playlists.has_playlist',
                 side_effect=lambda *args: False)
     @mock.patch('gepify.providers.playlists.download_playlist.delay')
     @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
-    def test_download_playlist_if_playlist_is_missing(
-            self, Spotify, download_playlist, has_playlist, post):
+    def test_download_playlist_if_playlist_is_missing(self, *args):
         self.login()
         response = self.client.post(
             url_for('spotify.download_playlist'),
@@ -505,13 +471,12 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assert200(response)
         self.assertIn(b'Your playlist is getting downloaded', response.data)
 
-    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
     @mock.patch('gepify.providers.playlists.has_playlist',
                 side_effect=lambda *args: True)
     @mock.patch('gepify.providers.playlists.get_playlist',
                 side_effect=lambda *args: {
                     'path': 'playlist.zip',
-                    'checksum': '2fd15849cfd59f547fb25ec68aaf04e7'})
+                    'checksum': '89c2226a90943679844cdc71693bc543'})
     @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
     def test_download_playlist_if_playlist_is_not_missing(self, *args):
         with open('playlist.zip', 'w+') as f:
@@ -526,7 +491,6 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertEqual(response.content_type, 'application/zip')
         response.close()
 
-    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
     @mock.patch('gepify.providers.playlists.has_playlist',
                 side_effect=lambda *args: True)
     @mock.patch('gepify.providers.playlists.get_playlist',

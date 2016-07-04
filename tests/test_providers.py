@@ -5,6 +5,7 @@ from werkzeug.contrib.cache import SimpleCache
 import json
 import time
 import os
+import celery
 
 
 class SongsTestCase(TestCase):
@@ -45,7 +46,7 @@ class SongsTestCase(TestCase):
         self.assertFalse(songs.has_song_format('some song', 'mp3'))
 
 
-class SongsTasksTestCase(TestCase):
+class SongsTasksTestCase(TestCase):        
     def setUp(self):
         songs.cache = SimpleCache()
 
@@ -62,14 +63,21 @@ class SongsTasksTestCase(TestCase):
             'Cache: song.mp3'
         )
 
+    @mock.patch('gepify.providers.songs.download_song.retry')
     @mock.patch('logging.Logger.info')
-    def test_download_song_if_song_is_being_downloaded(self, log_info):
+    def test_download_song_if_song_is_being_downloaded(self, log_info, retry):
         song = songs.get_song('song')
         song['files']['mp3'] = 'downloading'
         songs.cache.set('song', song)
         songs.download_song('song', format='mp3')
-        log_info.assert_called_with(
+        log_info.assert_called_once_with(
             'Attempt to download a song in the process of downloading')
+
+        # log_info.reset_mock()
+        # songs.download_song('song', format='mp3')
+        # log_info.assert_called_once_with(
+        #     'Song is aleady downloading. Will retry in 5 seconds.')
+        # self.assertTrue(retry.called)
 
     def test_download_song_with_unsupported_provider(self):
         with self.assertRaisesRegex(ValueError, 'Provider not found: zamunda'):
@@ -133,8 +141,10 @@ def mocked_getmtime(file):
 
 
 class PlaylistsTasksTestCase(TestCase):
-    def setUp(self):
-        playlists.cache = SimpleCache()
+    @classmethod
+    def setUpClass(cls):
+        if not os.path.exists('playlists/'):
+            os.mkdir('playlists')
 
     @classmethod
     def tearDownClass(cls):
@@ -143,6 +153,9 @@ class PlaylistsTasksTestCase(TestCase):
 
         if os.path.isfile('playlists/spotify_1234_mp3.zip'):
             os.remove('playlists/spotify_1234_mp3.zip')
+
+    def setUp(self):
+        playlists.cache = SimpleCache()
 
     @mock.patch('os.listdir', side_effect=mocked_list_dir)
     @mock.patch('os.path.getmtime', side_effect=mocked_getmtime)

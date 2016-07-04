@@ -4,6 +4,7 @@ from gepify.providers import songs, playlists, youtube, soundcloud
 from werkzeug.contrib.cache import SimpleCache
 import json
 import time
+import os
 
 
 class SongsTestCase(TestCase):
@@ -133,10 +134,15 @@ def mocked_getmtime(file):
 
 class PlaylistsTasksTestCase(TestCase):
     def setUp(self):
-        playlists.cache = mock.MagicMock()
+        playlists.cache = SimpleCache()
 
-    def tearDown(self):
-        playlists.cache.reset_mock()
+    @classmethod
+    def tearDownClass(cls):
+        if os.path.isfile('test.mp3'):
+            os.remove('test.mp3')
+
+        if os.path.isfile('playlists/spotify_1234_mp3.zip'):
+            os.remove('playlists/spotify_1234_mp3.zip')
 
     @mock.patch('os.listdir', side_effect=mocked_list_dir)
     @mock.patch('os.path.getmtime', side_effect=mocked_getmtime)
@@ -146,6 +152,71 @@ class PlaylistsTasksTestCase(TestCase):
         playlists.clean_playlists()
         self.assertEqual(os_remove.call_count, 1)
         os_remove.assert_called_with('playlists/1.zip')
+
+    @mock.patch('logging.Logger')
+    def test_handle_error(self, *args):
+        playlists.cache.set('new_playlist', {'checksum': '1234'})
+        playlists.handle_error({}, Exception(), None,
+                               playlist_cache_key='new_playlist')
+        self.assertIsNone(playlists.cache.get('new_playlist'))
+
+    def test_download_playlist_in_unsupported_format(self):
+        with self.assertRaisesRegex(ValueError, 'Format not supported: wav'):
+            playlists.download_playlist(
+                {'id': '1234'}, 'spotify', format='wav')
+
+    @mock.patch('logging.Logger.info')
+    def test_download_playlist_if_playlist_is_downloading(self, log_info):
+        playlist = {'id': '1234', 'tracks': ['some track']}
+        playlists.cache.set('spotify_1234_mp3', 'downloading')
+        playlists.download_playlist(playlist, 'spotify')
+        log_info.assert_called_once_with(
+            'Attempt to download a playlist in the process of downloading')
+
+    @mock.patch('logging.Logger.info')
+    def test_download_playlist_if_playlist_is_downloaded(self, log_info):
+        playlist = {'id': '1234', 'tracks': ['some track']}
+        playlist_data = {'checksum': playlists.checksum(playlist['tracks'])}
+        playlists.cache.set('spotify_1234_mp3', playlist_data)
+        playlists.download_playlist(playlist, 'spotify')
+        log_info.assert_called_once_with(
+            'Attempt to download an already downloaded playlist')
+
+    @mock.patch('gepify.providers.songs.has_song_format',
+                side_effect=lambda *args: True)
+    @mock.patch('gepify.providers.playlists.create_zip_playlist.apply_async')
+    def test_download_playlist_if_no_new_songs_need_to_be_downloaded(
+            self, create_zip_playlist, *args):
+        playlist = {'id': '1234', 'tracks': ['some track', 'another track']}
+        playlists.download_playlist(playlist, 'spotify')
+        self.assertTrue(create_zip_playlist.called)
+
+    @mock.patch('gepify.providers.songs.has_song_format',
+                side_effect=lambda *args: False)
+    @mock.patch('gepify.providers.songs.download_song')
+    @mock.patch('celery.chord.delay')
+    def test_download_playlist_with_missing_songs(self, chord, *args):
+        playlist = {'id': '1234', 'tracks': ['some track', 'another track']}
+        playlists.download_playlist(playlist, 'spotify')
+        self.assertTrue(chord.called)
+
+    @mock.patch('gepify.providers.songs.get_song',
+                side_effect=lambda *args: {'name': 'macarena',
+                                           'files': {'mp3': 'test.mp3'}})
+    def test_create_zip_playlist(self, *args):
+        with open('test.mp3', 'w+') as f:
+            f.write('some data')
+
+        playlist = {'id': '1234', 'tracks': ['some track']}
+        checksum = playlists.checksum(playlist['tracks'])
+
+        self.assertFalse(os.path.isfile('playlists/spotify_1234_mp3.zip'))
+        playlists.create_zip_playlist(playlist, 'spotify', checksum)
+        self.assertTrue(os.path.isfile('playlists/spotify_1234_mp3.zip'))
+
+        playlist = playlists.cache.get('spotify_1234_mp3')
+        self.assertEqual(playlist['path'], 'playlists/spotify_1234_mp3.zip')
+        self.assertEqual(playlist['checksum'], checksum)
 
 
 class mocked_Resource():

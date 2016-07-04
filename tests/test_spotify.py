@@ -44,8 +44,6 @@ def mocked_spotify_api_post(url, **kwargs):
                 'expires_in': 60
             }, 200)
 
-    return MockResponse({}, 404)
-
 
 def mocked_spotify_api_404(*args, **kwargs):
     return MockResponse({}, 404)

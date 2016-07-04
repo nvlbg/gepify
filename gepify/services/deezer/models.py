@@ -55,7 +55,6 @@ def get_playlists():
     playlists = []
 
     for item in playlists_data['data']:
-        # print(item.keys())
         if item['type'] == 'playlist':
             playlist = {
                 'id': item['id'],

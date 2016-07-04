@@ -265,6 +265,7 @@ class SpotifyModelsTestCase(GepifyTestCase):
         playlist = spotify.models._get_playlist('test_user', '1')
         self.assertEqual(playlist['name'], 'Starred')
         self.assertIsNone(playlist['description'])
+        self.assertIn('image', playlist)
         self.assertEqual(playlist['id'], 'test_user:1')
         self.assertEqual(len(playlist['tracks']), 200)
 
@@ -272,6 +273,7 @@ class SpotifyModelsTestCase(GepifyTestCase):
         album = spotify.models._get_album('0AYlrY39QmCNwR4r1uzlv3')
         self.assertEqual(album['name'], 'Bozdugan')
         self.assertEqual(album['id'], 'album:0AYlrY39QmCNwR4r1uzlv3')
+        self.assertIn('image', album)
         self.assertEqual(len(album['tracks']), 13)
 
     def test_get_playlist_with_keeping_song_names(self):

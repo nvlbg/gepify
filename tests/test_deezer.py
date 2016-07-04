@@ -58,10 +58,11 @@ def mocked_deezer_api_get(url):
                         'title': 'Song 1',
                         'artist': {
                             'name': 'Artist 1'
-                        }
+                        },
                     }
                 ]
-            }
+            },
+            'picture_medium': 'some url'
         }, 200)
 
     return MockResponse({}, 404)
@@ -203,6 +204,7 @@ class DeezerModelsTestCase(GepifyTestCase, ProfileMixin):
             self.assertEqual(playlist['id'], '1')
             self.assertEqual(playlist['description'], '')
             self.assertEqual(playlist['name'], 'Playlist 1')
+            self.assertEqual(playlist['image'], 'some url')
             self.assertEqual(len(playlist['tracks']), 1)
             self.assertIn('Artist 1 - Song 1', playlist['tracks'])
 
@@ -219,6 +221,7 @@ class DeezerModelsTestCase(GepifyTestCase, ProfileMixin):
             self.assertEqual(playlist['id'], '1')
             self.assertEqual(playlist['description'], '')
             self.assertEqual(playlist['name'], 'Playlist 1')
+            self.assertEqual(playlist['image'], 'some url')
             self.assertEqual(len(playlist['tracks']), 1)
             self.assertEqual(get_song.call_count, len(playlist['tracks']))
             self.assertEqual(

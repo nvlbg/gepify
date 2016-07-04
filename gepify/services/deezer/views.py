@@ -99,9 +99,9 @@ def playlist(id):
 def download_song(song_name, format):
     if format not in SUPPORTED_FORMATS:
         current_app.logger.warning(
-            'User tried to download a song in unsupported format.' +
-            'Song: {}'.format(song_name) +
-            'Format: {}'.format(format))
+            'User tried to download a song in unsupported format.\n' +
+            'Song: {}\n'.format(song_name) +
+            'Format: {}\n'.format(format))
         return render_template(
             'show_message.html', message='Unsupported format'), 400
 
@@ -129,9 +129,9 @@ def download_playlist():
 
     if format not in SUPPORTED_FORMATS:
         current_app.logger.warning(
-            'User tried to download a playlist in unsupported format.' +
-            'Playlist: {}'.format(playlist_id) +
-            'Format: {}'.format(format))
+            'User tried to download a playlist in unsupported format.\n' +
+            'Playlist: {}\n'.format(playlist_id) +
+            'Format: {}\n'.format(format))
         return render_template(
             'show_message.html', message='Unsupported format'), 400
 

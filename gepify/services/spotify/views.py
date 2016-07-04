@@ -52,10 +52,10 @@ def callback():
     stored_state = session.get('spotify_auth_state', None)
 
     if error is not None or state is None or state != stored_state:
-        current_app.logger.error('Could not authenticate spotify user:' +
-                                 'error: {}'.format(error) +
-                                 'state: {}'.format(state) +
-                                 'stored_state: {}'.format(stored_state))
+        current_app.logger.error('Could not authenticate spotify user:\n' +
+                                 'error: {}\n'.format(error) +
+                                 'state: {}\n'.format(state) +
+                                 'stored_state: {}\n'.format(stored_state))
         return render_template(
             'show_message.html',
             message='There was an error while trying to authenticate you.'
@@ -107,9 +107,9 @@ def playlist(id):
 def download_song(song_name, format):
     if format not in SUPPORTED_FORMATS:
         current_app.logger.warning(
-            'User tried to download a song in unsupported format.' +
-            'Song: {}'.format(song_name) +
-            'Format: {}'.format(format))
+            'User tried to download a song in unsupported format.\n' +
+            'Song: {}\n'.format(song_name) +
+            'Format: {}\n'.format(format))
         return render_template(
             'show_message.html', message='Unsupported format'), 400
 
@@ -137,9 +137,9 @@ def download_playlist():
 
     if format not in SUPPORTED_FORMATS:
         current_app.logger.warning(
-            'User tried to download a playlist in unsupported format.' +
-            'Playlist: {}'.format(playlist_id) +
-            'Format: {}'.format(format))
+            'User tried to download a playlist in unsupported format.\n' +
+            'Playlist: {}\n'.format(playlist_id) +
+            'Format: {}\n'.format(format))
         return render_template(
             'show_message.html', message='Unsupported format'), 400
 

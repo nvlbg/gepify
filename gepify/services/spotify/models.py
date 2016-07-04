@@ -59,10 +59,16 @@ def get_playlists():
         for item in result['items']:
             playlist = {
                 'id': '{}:{}'.format(item['owner']['id'], item['id']),
-                'images': item['images'],
+                'image': item['images'][0]['url'],
                 'name': item['name'],
                 'num_tracks': item['tracks']['total']
             }
+
+            for image in item['images']:
+                if image['width'] == 300:
+                    playlist['image'] = image['url']
+                    break
+
             playlists.append(playlist)
 
         result = g.spotipy.next(result) if result['next'] else None
@@ -72,10 +78,16 @@ def get_playlists():
         for item in result['items']:
             playlist = {
                 'id': 'album:{}'.format(item['album']['id']),
-                'images': item['album']['images'],
+                'image': item['album']['images'][0]['url'],
                 'name': item['album']['name'],
                 'num_tracks': item['album']['tracks']['total']
             }
+
+            for image in item['album']['images']:
+                if image['width'] == 300:
+                    playlist['image'] = image['url']
+                    break
+
             playlists.append(playlist)
 
         result = g.spotipy.next(result) if result['next'] else None
@@ -85,13 +97,19 @@ def get_playlists():
 
 def _get_playlist(username, playlist_id):
     result = g.spotipy.user_playlist(username, playlist_id,
-                                     'name,description,tracks')
+                                     'name,description,tracks,images')
     playlist = {
         'id': '{}:{}'.format(username, playlist_id),
         'name': result['name'],
         'description': result['description'],
+        'image': result['images'][0]['url'],
         'tracks': []
     }
+
+    for image in result['images']:
+        if image['width'] == 300:
+            playlist['image'] = image['url']
+            break
 
     tracks = result['tracks']
     while tracks is not None:
@@ -107,8 +125,14 @@ def _get_album(album_id):
     playlist = {
         'id': 'album:{}'.format(album_id),
         'name': result['name'],
+        'image': result['images'][0]['url'],
         'tracks': []
     }
+
+    for image in result['images']:
+        if image['width'] == 300:
+            playlist['image'] = image['url']
+            break
 
     tracks = result['tracks']
     while tracks is not None:

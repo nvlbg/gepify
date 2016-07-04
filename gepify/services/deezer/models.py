@@ -55,14 +55,13 @@ def get_playlists():
     playlists = []
 
     for item in playlists_data['data']:
+        # print(item.keys())
         if item['type'] == 'playlist':
             playlist = {
                 'id': item['id'],
                 'name': item['title'],
                 'num_tracks': item['nb_tracks'],
-                'images': [
-                    {'url': item['picture_medium']}
-                ]
+                'image': item['picture_medium']
             }
             playlists.append(playlist)
 
@@ -86,7 +85,8 @@ def get_playlist(playlist_id, keep_song_names=False):
         'id': playlist_id,
         'name': playlist_data['title'],
         'description': playlist_data['description'],
-        'tracks': []
+        'tracks': [],
+        'image': playlist_data['picture_medium']
     }
 
     for track in playlist_data['tracks']['data']:

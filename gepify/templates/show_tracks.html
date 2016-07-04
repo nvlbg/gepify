@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 
 {% block content %}
+  <img src="{{ playlist['image'] }}" class="center-block" width="300" height="300" />
   <h2 class="subtitle">{{ playlist['name'] }}</h2>
 
   {% if playlist['description'] %}

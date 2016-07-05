@@ -18,7 +18,8 @@
         {% set is_downloaded = format in track['files'].keys() %}
         <td>
           <div class="btn-group">
-            <a href="{{ url_for('{}.download_song'.format(service), format=format, song_name=track['name'], provider=SUPPORTED_PROVIDERS[0]) }}"
+            {% set provider = SUPPORTED_PROVIDERS[0] if not is_downloaded else None %}
+            <a href="{{ url_for('{}.download_song'.format(service), format=format, song_name=track['name'], provider=provider) }}"
                class="btn btn-xs dropdown-toggle {{ 'btn-success' if is_downloaded else 'btn-default' }}"
                type="button"
                data-toggle="{{ '' if is_downloaded else 'dropdown' }}"
@@ -41,13 +42,6 @@
             {% endif %}
           </div>
         </td>
-
-<!--         <td>
-          <a href="{{ url_for('{}.download_song'.format(service), format=format, song_name=track['name']) }}"
-             class="download-song label {{ 'label-success' if format in track['files'].keys() else 'label-default' }}">
-            {{ format }}
-          </a>
-        </td> -->
       {% endfor %}
     </tr>
   {% endfor %}

@@ -340,6 +340,15 @@ class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertEqual(response.status_code, 400)
         self.assertIn(b'Unsupported format', response.data)
 
+    @mock.patch('logging.Logger')
+    def test_download_song_with_unsupported_provider(self, *args):
+        self.login()
+        response = self.client.get(
+            url_for('deezer.download_song',
+                    song_name='test song', format='mp3', provider='zamunda'))
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b'Unsupported provider', response.data)
+
     @mock.patch('gepify.providers.songs.has_song_format',
                 side_effect=lambda song, format: False)
     @mock.patch('gepify.providers.songs.download_song.delay')

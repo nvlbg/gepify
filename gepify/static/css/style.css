@@ -63,6 +63,10 @@
     margin: 0!important;
 }
 
+.capitalize {
+    text-transform: capitalize;
+}
+
 form button[type=submit] {
     margin: 10px 0;
 }

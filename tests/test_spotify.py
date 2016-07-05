@@ -415,7 +415,7 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
     @mock.patch('gepify.providers.songs.has_song_format',
                 side_effect=lambda song, format: False)
     @mock.patch('gepify.providers.songs.download_song.delay',
-                side_effect=lambda song, format: None)
+                side_effect=lambda *args, **kwargs: None)
     def test_download_song_if_song_is_missing(self, *args):
         self.login()
         response = self.client.get(

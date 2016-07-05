@@ -9,7 +9,7 @@ from .models import SPOTIFY_CLIENT_ID, SPOTIFY_REDIRECT_URI
 from ..util import get_random_str
 import urllib
 from gepify.providers import (
-    songs, playlists, SUPPORTED_FORMATS, MIMETYPES
+    songs, playlists, SUPPORTED_FORMATS, SUPPORTED_PROVIDERS, MIMETYPES
 )
 
 
@@ -98,7 +98,8 @@ def playlist(id):
         'show_tracks.html',
         service='spotify',
         playlist=playlist,
-        SUPPORTED_FORMATS=SUPPORTED_FORMATS
+        SUPPORTED_FORMATS=SUPPORTED_FORMATS,
+        SUPPORTED_PROVIDERS=SUPPORTED_PROVIDERS
     )
 
 
@@ -109,12 +110,24 @@ def download_song(song_name, format):
         current_app.logger.warning(
             'User tried to download a song in unsupported format.\n' +
             'Song: {}\n'.format(song_name) +
-            'Format: {}\n'.format(format))
+            'Format: {}\n'.format(format)
+        )
         return render_template(
             'show_message.html', message='Unsupported format'), 400
 
     if not songs.has_song_format(song_name, format):
-        songs.download_song.delay(song_name, format=format)
+        provider = request.args.get('provider', SUPPORTED_PROVIDERS[0])
+        if provider not in SUPPORTED_PROVIDERS:
+            current_app.logger.warning(
+                'User tried to download a song with unsupported provider.\n' +
+                'Song: {}\n'.format(song_name) +
+                'Format: {}\n'.format(format) +
+                'Provider: {}\n'.format(provider)
+            )
+            return render_template(
+                'show_message.html', message='Unsupported provider'), 400
+
+        songs.download_song.delay(song_name, format=format, provider=provider)
         return render_template(
             'show_message.html', refresh_after=30,
             message='Your song has started downloading.'

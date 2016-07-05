@@ -15,12 +15,39 @@
         {{ track['name'] }}
       </td>
       {% for format in SUPPORTED_FORMATS %}
+        {% set is_downloaded = format in track['files'].keys() %}
         <td>
+          <div class="btn-group">
+            <a href="{{ url_for('{}.download_song'.format(service), format=format, song_name=track['name'], provider=SUPPORTED_PROVIDERS[0]) }}"
+               class="btn btn-xs dropdown-toggle {{ 'btn-success' if is_downloaded else 'btn-default' }}"
+               type="button"
+               data-toggle="{{ '' if is_downloaded else 'dropdown' }}"
+               aria-haspopup="true"
+               aria-expanded="false">
+              {{ format }}
+            </a>
+            {% if not is_downloaded %}
+              <ul class="dropdown-menu">
+                {% for provider in SUPPORTED_PROVIDERS %}
+                  <li>
+                    <a href="{{ url_for('{}.download_song'.format(service), format=format, song_name=track['name'], provider=provider) }}"
+                       class="capitalize">
+                      <img src="/static/img/{{ provider }}_icon.png" />
+                      {{ provider }}
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+        </td>
+
+<!--         <td>
           <a href="{{ url_for('{}.download_song'.format(service), format=format, song_name=track['name']) }}"
              class="download-song label {{ 'label-success' if format in track['files'].keys() else 'label-default' }}">
             {{ format }}
           </a>
-        </td>
+        </td> -->
       {% endfor %}
     </tr>
   {% endfor %}

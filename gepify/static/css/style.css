@@ -54,6 +54,15 @@
     margin: 0;
 }
 
+.download-title {
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.download-song {
+    margin: 0!important;
+}
+
 form button[type=submit] {
     margin: 10px 0;
 }

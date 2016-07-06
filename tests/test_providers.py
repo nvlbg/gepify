@@ -46,7 +46,7 @@ class SongsTestCase(TestCase):
         self.assertFalse(songs.has_song_format('some song', 'mp3'))
 
 
-class SongsTasksTestCase(TestCase):        
+class SongsTasksTestCase(TestCase):
     def setUp(self):
         songs.cache = SimpleCache()
 

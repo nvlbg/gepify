@@ -138,19 +138,32 @@ def download_song(song_name, format):
 @login_required
 def download_playlist():
     playlist_id = request.form['playlist_id']
-    format = request.form['format']
+    format = request.form.get('format', SUPPORTED_FORMATS[0])
+    provider = request.form.get('provider', SUPPORTED_PROVIDERS[0])
 
     if format not in SUPPORTED_FORMATS:
         current_app.logger.warning(
             'User tried to download a playlist in unsupported format.\n' +
             'Playlist: {}\n'.format(playlist_id) +
-            'Format: {}\n'.format(format))
+            'Format: {}\n'.format(format)
+        )
         return render_template(
             'show_message.html', message='Unsupported format'), 400
 
+    if provider not in SUPPORTED_PROVIDERS:
+        current_app.logger.warning(
+            'User tried to download a playlist with unsupported provider.\n' +
+            'Playlist: {}\n'.format(playlist_id) +
+            'Format: {}\n'.format(format) +
+            'Provider: {}\n'.format(provider)
+        )
+        return render_template(
+            'show_message.html', message='Unsupported provider'), 400
+
     playlist = models.get_playlist(playlist_id, keep_song_names=True)
     if not playlists.has_playlist('deezer', playlist_id, format):
-        playlists.download_playlist.delay(playlist, 'deezer', format=format)
+        playlists.download_playlist.delay(
+            playlist, 'deezer', format=format, provider=provider)
         return render_template('show_message.html',
                                message='Your playlist is getting downloaded')
 
@@ -158,7 +171,8 @@ def download_playlist():
     playlist_data = playlists.get_playlist('deezer', playlist_id, format)
 
     if playlist_data['checksum'] != playlist_checksum:
-        playlists.download_playlist.delay(playlist, 'deezer', format=format)
+        playlists.download_playlist.delay(
+            playlist, 'deezer', format=format, provider=provider)
         return render_template('show_message.html',
                                message='Your playlist is getting downloaded')
 

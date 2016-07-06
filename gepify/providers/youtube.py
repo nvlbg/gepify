@@ -36,6 +36,16 @@ downloaders = {
             'preferredquality': '192',
         }],
     }),
+    'aac': youtube_dl.YoutubeDL({
+        'format': 'bestaudio/best',
+        'outtmpl': 'songs/%(id)s.%(ext)s',
+        'postprocessor_args': ['-strict', '-2'],
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'aac',
+            'preferredquality': '192',
+        }],
+    }),
 }
 
 

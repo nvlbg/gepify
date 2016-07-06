@@ -6,7 +6,7 @@ Download your online playlists
 
 With this tool you can download your spotify and deezer playlists. The songs are downloaded from youtube or soundcloud.
 If you want support for other service or provider please [open an issue](https://github.com/nvlbg/gepify/issues). You can also download
-individual songs from your playlists. The supported formats for now are mp3, ogg and opus.
+individual songs from your playlists. The supported formats for now are mp3, ogg, opus and aac.
 
 Installing
 ----------

@@ -9,5 +9,5 @@ TODO
 - [x] option to choose preffered file format
 - [ ] logging
 - [x] write some documentation - how to start the app, etc.
-- [ ] add option to download in aac format
+- [x] add option to download in aac format
 - [x] re-download playlist if songs have changed

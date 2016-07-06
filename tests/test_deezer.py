@@ -400,16 +400,20 @@ class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
         response = self.client.post(url_for('deezer.download_playlist'))
         self.assertEqual(response.status_code, 400)
         response = self.client.post(url_for('deezer.download_playlist'),
-                                    data={'playlist_id': 'some id'})
-        self.assertEqual(response.status_code, 400)
-        response = self.client.post(url_for('deezer.download_playlist'),
                                     data={'format': 'mp3'})
         self.assertEqual(response.status_code, 400)
+
         response = self.client.post(
             url_for('deezer.download_playlist'),
             data={'playlist_id': 'some id', 'format': 'wav'})
         self.assertEqual(response.status_code, 400)
         self.assertIn(b'Unsupported format', response.data)
+
+        response = self.client.post(
+            url_for('deezer.download_playlist'),
+            data={'playlist_id': 'some id', 'provider': 'zamunda'})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b'Unsupported provider', response.data)
 
     @mock.patch('requests.get', side_effect=mocked_deezer_api_get)
     @mock.patch('gepify.providers.playlists.has_playlist',

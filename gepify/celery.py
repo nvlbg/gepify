@@ -1,3 +1,9 @@
+"""Celery configuration.
+
+This module serves as a configuration for a celery
+application that is used for running background tasks.
+"""
+
 from celery import Celery
 from datetime import timedelta
 import os

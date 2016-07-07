@@ -1,3 +1,5 @@
+"""Download your online playlists"""
+
 from flask import Flask, render_template
 from .services import services
 import os
@@ -5,6 +7,8 @@ import logging
 
 
 def create_app():
+    """Return a new flask application."""
+
     app = Flask(__name__)
 
     app.secret_key = os.environ.get('FLASK_SECRET_KEY')

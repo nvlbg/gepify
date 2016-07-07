@@ -1,3 +1,11 @@
+"""
+    gepify.providers.playlists
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Provides information about downloaded playlists
+    as well as functionality to download playlists.
+"""
+
 from werkzeug.contrib.cache import RedisCache
 from gepify.celery import celery_app
 from . import youtube, songs
@@ -14,6 +22,27 @@ logger = get_task_logger(__name__)
 
 
 def get_playlist(service, playlist, format):
+    """Return information about a playlists if it exists.
+
+    Parameters
+    ----------
+    service : str
+        The service which provided the playlist (e.g. spotify).
+    playlist : str
+        The id of the playlist.
+    format : str
+        The format of the songs in the playlist.
+
+    Returns
+    -------
+    dict
+        If the playlist exists with the following information:
+        path - The path on the filesystem where the playlist is located.
+        checksum - The `checksum` of the tracks in the playlist.
+    None
+        If the playlist does not exist.
+    """
+
     playlist = cache.get('{}_{}_{}'.format(service, playlist, format))
     if playlist == 'downloading':
         return None
@@ -21,11 +50,41 @@ def get_playlist(service, playlist, format):
 
 
 def has_playlist(service, playlist, format):
+    """Check if a playlist exists.
+
+    Parameters
+    ----------
+    service : str
+        The service which provided the playlist (e.g. spotify).
+    playlist : str
+        The id of the playlist.
+    format : str
+        The format of the songs in the playlist.
+
+    Returns
+    -------
+    bool
+        True if the playlist is downloaded and exists, False otherwise.
+    """
+
     playlist = cache.get('{}_{}_{}'.format(service, playlist, format))
     return playlist is not None and playlist != 'downloading'
 
 
 def checksum(tracks):
+    """Return the checksum of the tracks.
+
+    Parameters
+    ----------
+    tracks : list
+        List of song names.
+
+    Returns
+    -------
+    str
+        A checksum for the given tracks.
+    """
+
     return md5(''.join(sorted(tracks)).encode('utf-8')).hexdigest()
 
 
@@ -55,6 +114,27 @@ def create_zip_playlist(playlist, service, checksum, format='mp3'):
 
 @celery_app.task
 def download_playlist(playlist, service, provider='youtube', format='mp3'):
+    """Download a playlist.
+
+    Parameters
+    ----------
+    playlist : dict
+        Contains information about the playlist:
+        id - The id of the playlist.
+        tracks - List of the song names the playlist contains.
+    service : str
+        The service which provided the playlist (e.g. spotify).
+    provider : str
+        The provider to use when downloading the songs.
+    format : str
+        The format in which to convert the songs after downloading.
+
+    Raises
+    ------
+    ValueError
+        If `format` is not supported.
+    """
+
     if format not in SUPPORTED_FORMATS:
         raise ValueError('Format not supported: {}'.format(format))
 
@@ -98,6 +178,8 @@ def download_playlist(playlist, service, provider='youtube', format='mp3'):
 
 @celery_app.task(ignore_result=True)
 def clean_playlists():
+    """Delete old playlist files."""
+
     for playlist in os.listdir('playlists/'):
         path_to_playlist = 'playlists/{}'.format(playlist)
         last_modified = os.path.getmtime(path_to_playlist)

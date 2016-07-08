@@ -14,6 +14,19 @@ SPOTIFY_AUTHORIZATION_DATA = base64.b64encode(bytes(
 
 
 def request_access_token(payload):
+    """Request access token from auth code and save it in the session.
+
+    Parameters
+    ----------
+    code : str
+        The authentication code.
+
+    Raises
+    ------
+    RuntimeError
+        If spotify API gives an error.
+    """
+
     headers = {
         'Authorization': 'Basic {}'.format(SPOTIFY_AUTHORIZATION_DATA)
     }
@@ -36,6 +49,8 @@ def request_access_token(payload):
 
 
 def get_username():
+    """Get current user's username."""
+
     username = session.get('spotify_username', None)
     if username is None:
         username = g.spotipy.me()['id']
@@ -51,6 +66,18 @@ def get_song_name(track):
 
 
 def get_playlists():
+    """Get the playlists and saved albums of the user.
+
+    Returns
+    -------
+    list
+        Each item represents a playlist and has the following information:
+        id - The spotify playlist (or album) id.
+        name - The name of the playlist (album).
+        num_tracks - Total tracks in the playlist (album).
+        image - A url for an image of the playlist (album).
+    """
+
     username = get_username()
     result = g.spotipy.user_playlists(username)
 
@@ -144,6 +171,27 @@ def _get_album(album_id):
 
 
 def get_playlist(playlist_id, keep_song_names=False):
+    """Get a playlist (or album) by its id.
+
+    Parameters
+    ----------
+    playlist_id : str
+        The id of the playlist (album).
+    keep_song_names : bool
+        If True the tracks will be returned as list of song names.
+        If False tracks will be returned as dicts with information
+        taken from `gepify.providers.songs`.
+
+    Returns
+    -------
+    dict
+        id - The spotify playlist (album) id.
+        name - The name of the playlist (album).
+        description - The description of the playlist (album).
+        image - A url for an image of the playlist (album).
+        tracks - List of the tracks of the playlist (album).
+    """
+
     username, playlist_id = playlist_id.split(':')
     if username == 'album':
         playlist = _get_album(playlist_id)

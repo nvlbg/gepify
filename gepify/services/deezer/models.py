@@ -11,6 +11,19 @@ DEEZER_REDIRECT_URI = os.environ.get('DEEZER_REDIRECT_URI')
 
 
 def request_access_token(code):
+    """Request access token from auth code and save it in the session.
+
+    Parameters
+    ----------
+    code : str
+        The authentication code.
+
+    Raises
+    ------
+    RuntimeError
+        If deezer API gives an error.
+    """
+
     auth_request = requests.get(
         'https://connect.deezer.com/oauth/access_token.php' +
         '?output=json'
@@ -30,6 +43,14 @@ def request_access_token(code):
 
 
 def get_access_token():
+    """Get access token from the session if it exists.
+
+    Raises
+    ------
+    RuntimeError
+        If the user is not authenticated yet.
+    """
+
     access_token = session.get('deezer_access_token', None)
     if access_token is None:
         raise RuntimeError('User not authenticated')
@@ -41,6 +62,23 @@ def get_song_name(track):
 
 
 def get_playlists():
+    """Get the playlists of the user.
+
+    Returns
+    -------
+    list
+        Each item represents a playlist and has the following information:
+        id - The deezer playlist id.
+        name - The name of the playlist.
+        num_tracks - Total tracks in the playlist.
+        image - A url for an image of the playlist.
+
+    Raises
+    ------
+    RuntimeError
+        If deezer API gives an error.
+    """
+
     access_token = get_access_token()
 
     playlists_request = requests.get(
@@ -68,6 +106,32 @@ def get_playlists():
 
 
 def get_playlist(playlist_id, keep_song_names=False):
+    """Get a playlist by its id.
+
+    Parameters
+    ----------
+    playlist_id : str
+        The id of the playlist.
+    keep_song_names : bool
+        If True the tracks will be returned as list of song names.
+        If False tracks will be returned as dicts with information
+        taken from `gepify.providers.songs`.
+
+    Returns
+    -------
+    dict
+        id - The deezer playlist id.
+        name - The name of the playlist.
+        description - The description of the playlist.
+        image - A url for an image of the playlist.
+        tracks - List of the tracks of the playlist.
+
+    Raises
+    ------
+    RuntimeError
+        If deezer API gives an error.
+    """
+
     access_token = get_access_token()
 
     playlist_request = requests.get(

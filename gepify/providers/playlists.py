@@ -99,11 +99,17 @@ def create_zip_playlist(playlist, service, checksum, format='mp3'):
     playlist_cache_key = '{}_{}_{}'.format(service, playlist['id'], format)
     playlist_zip_filename = 'playlists/{}.zip'.format(playlist_cache_key)
     playlist_zip = zipfile.ZipFile(playlist_zip_filename, 'w')
+    playlist_m3u_name = 'playlists/{}.m3u'.format(playlist_cache_key)
+    playlist_m3u = open(playlist_m3u_name, 'w')
 
     for song_name in playlist['tracks']:
         song = songs.get_song(song_name)
         playlist_zip.write(song['files'][format],
                            '{}.{}'.format(song['name'], format))
+        playlist_m3u.write('{}.{}\n'.format(song['name'], format))
+
+    playlist_m3u.close()
+    playlist_zip.write(playlist_m3u_name, '{}.m3u'.format(playlist['name']))
 
     playlist_zip.close()
     cache.set(playlist_cache_key, {

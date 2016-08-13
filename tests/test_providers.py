@@ -220,7 +220,7 @@ class PlaylistsTasksTestCase(TestCase):
         with open('test.mp3', 'w+') as f:
             f.write('some data')
 
-        playlist = {'id': '1234', 'tracks': ['some track']}
+        playlist = {'id': '1234', 'tracks': ['some track'], 'name': 'hated'}
         checksum = playlists.checksum(playlist['tracks'])
 
         self.assertFalse(os.path.isfile('playlists/spotify_1234_mp3.zip'))

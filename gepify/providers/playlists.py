@@ -195,7 +195,7 @@ def clean_playlists():
         last_modified = os.path.getmtime(path_to_playlist)
         now = time.time()
 
-        if now - last_modified > 30*60:  # 30 minutes
+        if now - last_modified > 30 * 60:  # 30 minutes
             os.remove(path_to_playlist)
             cache.delete(playlist[:-4])
             logger.info('Deleting old playlist: {}'.format(path_to_playlist))

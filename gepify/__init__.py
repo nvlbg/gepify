@@ -1,6 +1,6 @@
 """Download your online playlists"""
 
-from flask import Flask, render_template
+from flask import Flask
 from .services import services
 import os
 import logging

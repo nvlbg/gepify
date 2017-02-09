@@ -9,7 +9,7 @@
 from werkzeug.contrib.cache import RedisCache
 from gepify.celery import celery_app
 from celery.utils.log import get_task_logger
-from . import youtube, soundcloud, SUPPORTED_FORMATS, MIMETYPES
+from . import youtube, soundcloud, SUPPORTED_FORMATS
 
 cache = RedisCache(key_prefix='song_info_', default_timeout=0)
 logger = get_task_logger(__name__)

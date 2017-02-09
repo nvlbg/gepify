@@ -1,11 +1,9 @@
 from unittest import mock, TestCase
-import gepify
 from gepify.providers import songs, playlists, youtube, soundcloud
 from werkzeug.contrib.cache import SimpleCache
 import json
 import time
 import os
-import celery
 
 
 class SongsTestCase(TestCase):

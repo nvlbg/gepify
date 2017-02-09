@@ -2,6 +2,11 @@
 gepify.egg-info/
 *.pyc
 
+# text editors configurations
+.vscode/
+gepify.sublime-project
+gepify.sublime-workspace
+
 # songs and playlists folders
 songs/*
 playlists/*

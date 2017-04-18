@@ -4,6 +4,82 @@ from .view_decorators import access_key_required
 from gepify.providers import (
     songs, SUPPORTED_FORMATS, SUPPORTED_PROVIDERS, MIMETYPES
 )
+from gepify.services.spotify.models import (
+    SPOTIFY_AUTHORIZATION_DATA
+)
+import requests
+import json
+
+SPOTIFY_REDIRECT_URI = 'spotify-auth://callback'
+
+
+@mobile_api_service.route('/get_access_token/<code>')
+def get_access_token(code):
+    payload = {
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': SPOTIFY_REDIRECT_URI
+    }
+
+    headers = {
+        'Authorization': 'Basic {}'.format(SPOTIFY_AUTHORIZATION_DATA)
+    }
+
+    try:
+        post_request = requests.post('https://accounts.spotify.com/api/token',
+                                     data=payload, headers=headers)
+
+        if post_request.status_code == 200:
+            response_data = json.loads(post_request.text)
+            access_token = response_data['access_token']
+            refresh_token = response_data.get('refresh_token', None)
+            expires_in = response_data['expires_in']
+
+            return jsonify(
+                access_token=access_token,
+                refresh_token=refresh_token,
+                expires_in=expires_in)
+        else:
+            raise RuntimeError('Could not get authentication token')
+    except Exception as e:
+        current_app.logger.error(
+            'Could not authenticate spotify user: {}'.format(e))
+        return jsonify(
+            error='There was an error while trying to authenticate you.'
+                  'Please, try again.'), 503
+
+
+@mobile_api_service.route('/refresh_access_token/<refresh_token>')
+def refresh_access_token(refresh_token):
+    payload = {
+        'refresh_token': refresh_token,
+        'grant_type': 'refresh_token'
+    }
+
+    headers = {
+        'Authorization': 'Basic {}'.format(SPOTIFY_AUTHORIZATION_DATA)
+    }
+
+    try:
+        post_request = requests.post('https://accounts.spotify.com/api/token',
+                                     data=payload, headers=headers)
+
+        if post_request.status_code == 200:
+            response_data = json.loads(post_request.text)
+            access_token = response_data['access_token']
+            expires_in = response_data['expires_in']
+
+            return jsonify(
+                access_token=access_token,
+                expires_in=expires_in)
+        else:
+            raise RuntimeError('Could not get authentication token')
+    except Exception as e:
+        current_app.logger.error(
+            'Could not authenticate spotify user: {}'.format(e))
+        return jsonify(
+            error='There was an error while trying to authenticate you.'
+                  'Please, try again.'), 503
 
 
 @mobile_api_service.route('/download_song/<song_name>/<format>')

@@ -3,7 +3,7 @@
     ~~~~~~~~~~~~~~~~~~~~~~
 
     This module contains functionality for connecting users
-    to their spotify accounts, getting information about their playlists,
+    to their deezer accounts, getting information about their playlists,
     as well as the functionality for downloading them.
 """
 

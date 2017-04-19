@@ -1,16 +1,16 @@
 """
-    gepify.services.spotify
+    gepify.services.youtube
     ~~~~~~~~~~~~~~~~~~~~~~~
 
     This module contains functionality for connecting users
-    to their spotify accounts, getting information about their playlists,
+    to their youtube accounts, getting information about their playlists,
     as well as the functionality for downloading them.
 """
 
 from flask import Blueprint
 
-spotify_service = Blueprint('spotify', __name__, url_prefix='/spotify')
+youtube_service = Blueprint('youtube', __name__, url_prefix='/youtube')
 
 from . import views  # nopep8
 
-__all__ = ['spotify_service']
+__all__ = ['youtube_service']

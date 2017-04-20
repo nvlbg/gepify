@@ -182,7 +182,7 @@ def download_playlist(playlist, service, provider='youtube', format='mp3'):
             download_song_tasks,
             create_zip_playlist.si(
                 playlist, service, playlist_checksum, format
-            ).on_error(handle_error.s(playlist_cache_key))
+            ).link_error(handle_error.s(playlist_cache_key))
         ).delay()
 
 

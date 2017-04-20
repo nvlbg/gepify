@@ -10,11 +10,13 @@
 from .spotify import spotify_service
 from .deezer import deezer_service
 from .mobile_api import mobile_api_service
+from .youtube import youtube_service
 
 services = [
     spotify_service,
     deezer_service,
-    mobile_api_service
+    mobile_api_service,
+    youtube_service
 ]
 
 __all__ = ['services']

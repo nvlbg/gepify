@@ -110,9 +110,10 @@ def download_song(song_name, format):
             message='Your song has started downloading.')
 
     song = songs.get_song(song_name)
+    # TODO: temporary workaround with filename (until Flask 0.13 is released)
     return send_file(
         '../' + song['files'][format],
         as_attachment=True,
-        attachment_filename=song['name'],
+        # attachment_filename=song['name'],
         mimetype=MIMETYPES[format]
     )

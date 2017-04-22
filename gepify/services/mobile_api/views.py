@@ -82,7 +82,7 @@ def refresh_access_token(refresh_token):
                   'Please, try again.'), 503
 
 
-@mobile_api_service.route('/download_song/<song_name>/<format>')
+@mobile_api_service.route('/download_song/<path:song_name>/<format>')
 @access_key_required
 def download_song(song_name, format):
     if format not in SUPPORTED_FORMATS:

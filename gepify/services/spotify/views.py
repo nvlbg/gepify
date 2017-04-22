@@ -103,7 +103,7 @@ def playlist(id):
     )
 
 
-@spotify_service.route('/download_song/<song_name>/<format>')
+@spotify_service.route('/download_song/<path:song_name>/<format>')
 @login_required
 def download_song(song_name, format):
     if format not in SUPPORTED_FORMATS:

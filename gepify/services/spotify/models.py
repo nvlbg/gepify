@@ -141,7 +141,8 @@ def _get_playlist(username, playlist_id):
     tracks = result['tracks']
     while tracks is not None:
         for item in tracks['items']:
-            playlist['tracks'].append(get_song_name(item['track']))
+            song = songs.get_song(get_song_name(item['track']))
+            playlist['tracks'].append(song)
         tracks = g.spotipy.next(tracks) if tracks['next'] else None
 
     return playlist
@@ -164,23 +165,20 @@ def _get_album(album_id):
     tracks = result['tracks']
     while tracks is not None:
         for track in tracks['items']:
-            playlist['tracks'].append(get_song_name(track))
+            song = songs.get_song(get_song_name(track))
+            playlist['tracks'].append(song)
         tracks = g.spotipy.next(tracks) if tracks['next'] else None
 
     return playlist
 
 
-def get_playlist(playlist_id, keep_song_names=False):
+def get_playlist(playlist_id):
     """Get a playlist (or album) by its id.
 
     Parameters
     ----------
     playlist_id : str
         The id of the playlist (album).
-    keep_song_names : bool
-        If True the tracks will be returned as list of song names.
-        If False tracks will be returned as dicts with information
-        taken from `gepify.providers.songs`.
 
     Returns
     -------
@@ -197,13 +195,5 @@ def get_playlist(playlist_id, keep_song_names=False):
         playlist = _get_album(playlist_id)
     else:
         playlist = _get_playlist(username, playlist_id)
-
-    # get latest info about the tracks from cache
-    # in case a song's files have changed
-    if not keep_song_names:
-        tracks = []
-        for track in playlist['tracks']:
-            tracks.append(songs.get_song(track))
-        playlist['tracks'] = tracks
 
     return playlist

@@ -33,18 +33,18 @@ def mocked_deezer_api_get(url):
         return MockResponse({
             'data': [
                 {
-                  'id': '1677006641',
-                  'title': 'New Urban Pop HITS (Justin Timberlake, Sia...)',
-                  'nb_tracks': 48,
-                  'type': 'playlist',
-                  'picture_medium': 'some url'
+                    'id': '1677006641',
+                    'title': 'New Urban Pop HITS (Justin Timberlake, Sia...)',
+                    'nb_tracks': 48,
+                    'type': 'playlist',
+                    'picture_medium': 'some url'
                 },
                 {
-                  'id': '164716031',
-                  'title': 'Duets',
-                  'nb_tracks': 47,
-                  'type': 'playlist',
-                  'picture_medium': 'some url'
+                    'id': '164716031',
+                    'title': 'Duets',
+                    'nb_tracks': 47,
+                    'type': 'playlist',
+                    'picture_medium': 'some url'
                 }
             ]
         }, 200)
@@ -74,7 +74,7 @@ class ProfileMixin():
         login_response = self.client.get(url_for('deezer.login'))
         deezer_redirect = login_response.location
         self.assertTrue(deezer_redirect.startswith(
-                            'https://connect.deezer.com/oauth/auth.php'))
+                        'https://connect.deezer.com/oauth/auth.php'))
 
         params = parse.parse_qs(parse.urlparse(deezer_redirect).query)
 
@@ -195,21 +195,6 @@ class DeezerModelsTestCase(GepifyTestCase, ProfileMixin):
             self.login()
             with self.assertRaisesRegex(RuntimeError, 'Deezer API error'):
                 deezer.models.get_playlists()
-
-    @mock.patch('requests.get', side_effect=mocked_deezer_api_get)
-    def test_get_playlist_with_keeping_song_names(self, *args):
-        with self.client:
-            self.login()
-            playlist = deezer.models.get_playlist('1', keep_song_names=True)
-            self.assertEqual(playlist['id'], '1')
-            self.assertEqual(playlist['description'], '')
-            self.assertEqual(playlist['name'], 'Playlist 1')
-            self.assertEqual(playlist['image'], 'some url')
-            self.assertEqual(len(playlist['tracks']), 1)
-            self.assertIn('Artist 1 - Song 1', playlist['tracks'])
-
-            with self.assertRaisesRegex(RuntimeError, 'Deezer API error'):
-                deezer.models.get_playlist('missing id', keep_song_names=True)
 
     @mock.patch('requests.get', side_effect=mocked_deezer_api_get)
     @mock.patch('gepify.providers.songs.get_song',
@@ -345,7 +330,8 @@ class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
         self.login()
         response = self.client.get(
             url_for('deezer.download_song',
-                    song_name='test song', format='mp3', provider='zamunda'))
+                    song_name='song with / / slashes /',
+                    format='mp3', provider='zamunda'))
         self.assertEqual(response.status_code, 400)
         self.assertIn(b'Unsupported provider', response.data)
 
@@ -365,7 +351,7 @@ class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
                 side_effect=lambda song, format: True)
     @mock.patch('gepify.providers.songs.get_song',
                 side_effect=lambda song: {
-                    'name': song, 'files': {'mp3': song+'.mp3'}})
+                    'name': song, 'files': {'mp3': song + '.mp3'}})
     def test_download_song_if_song_is_not_missing(self, *args):
         with open('test song.mp3', 'w+') as f:
             f.write('some data')
@@ -384,7 +370,7 @@ class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
                 side_effect=lambda song, format: True)
     @mock.patch('gepify.providers.songs.get_song',
                 side_effect=lambda song: {
-                    'name': song, 'files': {'mp3': song+'.mp3'}})
+                    'name': song, 'files': {'mp3': song + '.mp3'}})
     def test_download_song_if_mp3_file_is_missing(self, *args):
         self.login()
         response = self.client.get(

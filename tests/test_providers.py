@@ -50,12 +50,12 @@ class SongsTasksTestCase(TestCase):
 
     def test_download_song_in_unsupported_format(self):
         with self.assertRaisesRegex(ValueError, 'Format not supported: wav'):
-            songs.download_song('song', format='wav')
+            songs.download_song({'name': 'song'}, format='wav')
 
     @mock.patch('logging.Logger.info')
     def test_download_song_if_song_is_already_downloaded(self, log_info):
         songs.add_song_file('song', 'song.mp3', 'mp3')
-        songs.download_song('song', format='mp3')
+        songs.download_song({'name': 'song'}, format='mp3')
         log_info.assert_called_with(
             'Attempt to download already downloaded song.'
             'Cache: song.mp3'
@@ -67,7 +67,7 @@ class SongsTasksTestCase(TestCase):
         song = songs.get_song('song')
         song['files']['mp3'] = 'downloading'
         songs.cache.set('song', song)
-        songs.download_song('song', format='mp3')
+        songs.download_song({'name': 'song'}, format='mp3')
         log_info.assert_called_once_with(
             'Attempt to download a song in the process of downloading')
 
@@ -79,7 +79,7 @@ class SongsTasksTestCase(TestCase):
 
     def test_download_song_with_unsupported_provider(self):
         with self.assertRaisesRegex(ValueError, 'Provider not found: zamunda'):
-            songs.download_song('song', provider='zamunda')
+            songs.download_song({'name': 'song'}, provider='zamunda')
         song = songs.get_song('song')
         self.assertNotIn('mp3', song['files'])
 
@@ -87,7 +87,7 @@ class SongsTasksTestCase(TestCase):
                 side_effect=lambda name: 'dQw4w9WgXcQ')
     @mock.patch('gepify.providers.youtube.download_song')
     def test_download_song_with_youtube(self, download_song, *args):
-        songs.download_song('song')
+        songs.download_song({'name': 'song'})
         download_song.assert_called_with('dQw4w9WgXcQ', 'mp3')
         song = songs.get_song('song')
         self.assertEqual(song['files']['mp3'], 'songs/dQw4w9WgXcQ.mp3')
@@ -96,7 +96,7 @@ class SongsTasksTestCase(TestCase):
                 side_effect=lambda name: (1234, 'song id'))
     @mock.patch('gepify.providers.soundcloud.download_song')
     def test_download_song_with_soundcloud(self, download_song, *args):
-        songs.download_song('song', provider='soundcloud')
+        songs.download_song({'name': 'song'}, provider='soundcloud')
         download_song.assert_called_with('song id', 'mp3')
         song = songs.get_song('song')
         self.assertEqual(song['files']['mp3'], 'songs/1234.mp3')
@@ -133,7 +133,7 @@ def mocked_list_dir(dir):
 
 def mocked_getmtime(file):
     if file == 'playlists/1.zip':
-        return time.time() - 60*60
+        return time.time() - 60 * 60
     if file == 'playlists/2.zip':
         return time.time() - 42
 
@@ -167,8 +167,7 @@ class PlaylistsTasksTestCase(TestCase):
     @mock.patch('logging.Logger')
     def test_handle_error(self, *args):
         playlists.cache.set('new_playlist', {'checksum': '1234'})
-        playlists.handle_error({}, Exception(), None,
-                               playlist_cache_key='new_playlist')
+        playlists.handle_error(playlist_cache_key='new_playlist')
         self.assertIsNone(playlists.cache.get('new_playlist'))
 
     def test_download_playlist_in_unsupported_format(self):
@@ -178,7 +177,7 @@ class PlaylistsTasksTestCase(TestCase):
 
     @mock.patch('logging.Logger.info')
     def test_download_playlist_if_playlist_is_downloading(self, log_info):
-        playlist = {'id': '1234', 'tracks': ['some track']}
+        playlist = {'id': '1234', 'tracks': [{'name': 'some track'}]}
         playlists.cache.set('spotify_1234_mp3', 'downloading')
         playlists.download_playlist(playlist, 'spotify')
         log_info.assert_called_once_with(
@@ -186,7 +185,7 @@ class PlaylistsTasksTestCase(TestCase):
 
     @mock.patch('logging.Logger.info')
     def test_download_playlist_if_playlist_is_downloaded(self, log_info):
-        playlist = {'id': '1234', 'tracks': ['some track']}
+        playlist = {'id': '1234', 'tracks': [{'name': 'some track'}]}
         playlist_data = {'checksum': playlists.checksum(playlist['tracks'])}
         playlists.cache.set('spotify_1234_mp3', playlist_data)
         playlists.download_playlist(playlist, 'spotify')
@@ -198,7 +197,8 @@ class PlaylistsTasksTestCase(TestCase):
     @mock.patch('gepify.providers.playlists.create_zip_playlist.apply_async')
     def test_download_playlist_if_no_new_songs_need_to_be_downloaded(
             self, create_zip_playlist, *args):
-        playlist = {'id': '1234', 'tracks': ['some track', 'another track']}
+        playlist = {'id': '1234', 'tracks': [
+            {'name': 'some track'}, {'name': 'another track'}]}
         playlists.download_playlist(playlist, 'spotify')
         self.assertTrue(create_zip_playlist.called)
 
@@ -207,7 +207,8 @@ class PlaylistsTasksTestCase(TestCase):
     @mock.patch('gepify.providers.songs.download_song')
     @mock.patch('celery.chord.delay')
     def test_download_playlist_with_missing_songs(self, chord, *args):
-        playlist = {'id': '1234', 'tracks': ['some track', 'another track']}
+        playlist = {'id': '1234', 'tracks': [
+            {'name': 'some track'}, {'name': 'another track'}]}
         playlists.download_playlist(playlist, 'spotify')
         self.assertTrue(chord.called)
 
@@ -218,7 +219,11 @@ class PlaylistsTasksTestCase(TestCase):
         with open('test.mp3', 'w+') as f:
             f.write('some data')
 
-        playlist = {'id': '1234', 'tracks': ['some track'], 'name': 'hated'}
+        playlist = {
+            'id': '1234',
+            'tracks': [{'name': 'some track'}],
+            'name': 'hated'
+        }
         checksum = playlists.checksum(playlist['tracks'])
 
         self.assertFalse(os.path.isfile('playlists/spotify_1234_mp3.zip'))

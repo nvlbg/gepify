@@ -274,22 +274,6 @@ class SpotifyModelsTestCase(GepifyTestCase):
         self.assertIn('image', album)
         self.assertEqual(len(album['tracks']), 13)
 
-    def test_get_playlist_with_keeping_song_names(self):
-        playlist = spotify.models.get_playlist('test_user:1',
-                                               keep_song_names=True)
-        self.assertEqual(playlist['id'], 'test_user:1')
-        self.assertIsNone(playlist['description'])
-        self.assertEqual(playlist['name'], 'Starred')
-        self.assertEqual(len(playlist['tracks']), 200)
-        self.assertIn('Leona Lewis - Bleeding Love', playlist['tracks'])
-        self.assertIn('The National - Anyone’s Ghost', playlist['tracks'])
-
-        playlist = spotify.models.get_playlist('album:0AYlrY39QmCNwR4r1uzlv3',
-                                               keep_song_names=True)
-        self.assertEqual(playlist['name'], 'Bozdugan')
-        self.assertEqual(playlist['id'], 'album:0AYlrY39QmCNwR4r1uzlv3')
-        self.assertEqual(len(playlist['tracks']), 13)
-
     @mock.patch('gepify.providers.songs.get_song',
                 side_effect=lambda song_name: {'name': song_name})
     def test_get_playlist_without_keeping_song_names(self, get_song):
@@ -417,7 +401,8 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.login()
         response = self.client.get(
             url_for('spotify.download_song',
-                    song_name='test song', format='mp3', provider='zamunda'))
+                    song_name='song with / / slashes /',
+                    format='mp3', provider='zamunda'))
         self.assertEqual(response.status_code, 400)
         self.assertIn(b'Unsupported provider', response.data)
 
@@ -437,7 +422,7 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
                 side_effect=lambda song, format: True)
     @mock.patch('gepify.providers.songs.get_song',
                 side_effect=lambda song: {
-                    'name': song, 'files': {'mp3': song+'.mp3'}})
+                    'name': song, 'files': {'mp3': song + '.mp3'}})
     def test_download_song_if_song_is_not_missing(self, *args):
         with open('test song.mp3', 'w+') as f:
             f.write('some data')

@@ -27,7 +27,7 @@ def get_playlists():
     return playlists
 
 
-def get_playlist(playlist_id, keep_song_names=False):
+def get_playlist(playlist_id):
     playlist_data = g.youtube.playlists().list(
         part='snippet',
         id=playlist_id
@@ -47,12 +47,9 @@ def get_playlist(playlist_id, keep_song_names=False):
         maxResults=50
     ).execute()['items']
 
-    if keep_song_names:
-        for track in playlist_songs:
-            playlist['tracks'].append(track['snippet']['title'])
-    else:
-        for track in playlist_songs:
-            song = songs.get_song(track['snippet']['title'])
-            playlist['tracks'].append(song)
+    for track in playlist_songs:
+        song = songs.get_song(track['snippet']['title'])
+        song['youtube'] = track['contentDetails']['videoId']
+        playlist['tracks'].append(song)
 
     return playlist

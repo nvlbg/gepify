@@ -8,7 +8,7 @@
 
 from werkzeug.contrib.cache import RedisCache
 from gepify.celery import celery_app
-from . import youtube, songs
+from . import songs
 from .songs import SUPPORTED_FORMATS
 from celery import chord
 from celery.utils.log import get_task_logger
@@ -85,12 +85,14 @@ def checksum(tracks):
         A checksum for the given tracks.
     """
 
-    return md5(''.join(sorted(tracks)).encode('utf-8')).hexdigest()
+    track_names = sorted([track['name'] for track in tracks])
+    return md5(''.join(track_names).encode('utf-8')).hexdigest()
 
 
 @celery_app.task
-def handle_error(request, exc, traceback, playlist_cache_key):
-    logger.error('An error occured while trying to download a playlist')
+def handle_error(playlist_cache_key):
+    logger.error('An error occured while trying to download a playlist.'
+                 ' Cache key: {}'.format(playlist_cache_key))
     cache.delete(playlist_cache_key)
 
 
@@ -101,8 +103,8 @@ def create_zip_playlist(playlist, service, checksum, format='mp3'):
     playlist_zip = zipfile.ZipFile(playlist_zip_filename, 'w')
     playlist_m3u_contents = ['#EXTM3U']
 
-    for song_name in playlist['tracks']:
-        song = songs.get_song(song_name)
+    for song_info in playlist['tracks']:
+        song = songs.get_song(song_info['name'])
         playlist_zip.write(
             song['files'][format], '{}.{}'.format(song['name'], format))
         playlist_m3u_contents.append(
@@ -131,7 +133,12 @@ def download_playlist(playlist, service, provider='youtube', format='mp3'):
     playlist : dict
         Contains information about the playlist:
         id - The id of the playlist.
-        tracks - List of the song names the playlist contains.
+        tracks - List of dicts with information about songs.
+        Each dict should have:
+            name - The song name
+            [provider] (optional) - Known id of the song by [provider].
+            If present song will not be searched and will be directly
+            downloaded by this id.
     service : str
         The service which provided the playlist (e.g. spotify).
     provider : str
@@ -149,40 +156,43 @@ def download_playlist(playlist, service, provider='youtube', format='mp3'):
         raise ValueError('Format not supported: {}'.format(format))
 
     playlist_cache_key = '{}_{}_{}'.format(service, playlist['id'], format)
-    playlist_checksum = checksum(playlist['tracks'])
     playlist_data = cache.get(playlist_cache_key)
 
     if playlist_data == 'downloading':
         logger.info(
             'Attempt to download a playlist in the process of downloading')
         return
-    elif (playlist_data is not None and
-          playlist_data['checksum'] == playlist_checksum):
+
+    playlist_checksum = checksum(playlist['tracks'])
+
+    if (playlist_data is not None and
+            playlist_data['checksum'] == playlist_checksum):
         logger.info('Attempt to download an already downloaded playlist')
         return
 
     cache.set(playlist_cache_key, 'downloading')
 
     download_song_tasks = []
-    for song_name in playlist['tracks']:
-        if not songs.has_song_format(song_name, format):
+    for song in playlist['tracks']:
+        if not songs.has_song_format(song['name'], format):
             download_song_tasks.append(
-                songs.download_song.s(
-                    song_name, provider, format
-                ).on_error(handle_error.s(playlist_cache_key))
+                songs.download_song.si(
+                    song, provider, format
+                )
             )
 
     if len(download_song_tasks) == 0:
         create_zip_playlist.apply_async(
             args=(playlist, service, playlist_checksum, format),
-            link_error=handle_error.s(playlist_cache_key)
+            link_error=handle_error.si(playlist_cache_key)
         )
     else:
         chord(
             download_song_tasks,
             create_zip_playlist.si(
                 playlist, service, playlist_checksum, format
-            ).link_error(handle_error.s(playlist_cache_key))
+            ),
+            link_error=handle_error.si(playlist_cache_key)
         ).delay()
 
 

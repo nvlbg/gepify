@@ -19,7 +19,7 @@
         <td>
           <div class="btn-group">
             {% set provider = SUPPORTED_PROVIDERS[0] if not is_downloaded else None %}
-            <a href="{{ url_for('{}.download_song'.format(service), format=format, song_name=track['name'], provider=provider) }}"
+            <a href="{{ url_for('{}.download_song'.format(service), format=format, song_name=track['name'], provider=provider, provider_id=track[provider]) }}"
                class="btn btn-xs dropdown-toggle {{ 'btn-success' if is_downloaded else 'btn-default' }}"
                type="button"
                data-toggle="{{ '' if is_downloaded else 'dropdown' }}"
@@ -31,7 +31,7 @@
               <ul class="dropdown-menu">
                 {% for provider in SUPPORTED_PROVIDERS %}
                   <li>
-                    <a href="{{ url_for('{}.download_song'.format(service), format=format, song_name=track['name'], provider=provider) }}"
+                    <a href="{{ url_for('{}.download_song'.format(service), format=format, song_name=track['name'], provider=provider, provider_id=track[provider]) }}"
                        class="capitalize">
                       <img src="/static/img/{{ provider }}_icon.png" />
                       {{ provider }}

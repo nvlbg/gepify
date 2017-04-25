@@ -105,17 +105,13 @@ def get_playlists():
     return playlists
 
 
-def get_playlist(playlist_id, keep_song_names=False):
+def get_playlist(playlist_id):
     """Get a playlist by its id.
 
     Parameters
     ----------
     playlist_id : str
         The id of the playlist.
-    keep_song_names : bool
-        If True the tracks will be returned as list of song names.
-        If False tracks will be returned as dicts with information
-        taken from `gepify.providers.songs`.
 
     Returns
     -------
@@ -153,14 +149,7 @@ def get_playlist(playlist_id, keep_song_names=False):
     }
 
     for track in playlist_data['tracks']['data']:
-        playlist['tracks'].append(get_song_name(track))
-
-    # get latest info about the tracks from cache
-    # in case a song's files have changed
-    if not keep_song_names:
-        tracks = []
-        for track in playlist['tracks']:
-            tracks.append(songs.get_song(track))
-        playlist['tracks'] = tracks
+        song = songs.get_song(get_song_name(track))
+        playlist['tracks'].append(song)
 
     return playlist

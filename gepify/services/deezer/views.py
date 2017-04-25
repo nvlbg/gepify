@@ -119,7 +119,8 @@ def download_song(song_name, format):
             return render_template(
                 'show_message.html', message='Unsupported provider'), 400
 
-        songs.download_song.delay(song_name, format=format, provider=provider)
+        song = {'name': song_name}
+        songs.download_song.delay(song, format=format, provider=provider)
         return render_template(
             'show_message.html', refresh_after=30,
             message='Your song has started downloading.'
@@ -160,7 +161,7 @@ def download_playlist():
         return render_template(
             'show_message.html', message='Unsupported provider'), 400
 
-    playlist = models.get_playlist(playlist_id, keep_song_names=True)
+    playlist = models.get_playlist(playlist_id)
     if not playlists.has_playlist('deezer', playlist_id, format):
         playlists.download_playlist.delay(
             playlist, 'deezer', format=format, provider=provider)

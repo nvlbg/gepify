@@ -93,13 +93,17 @@ def has_song_format(song_name, format):
 
 
 @celery_app.task(bind=True)
-def download_song(self, song_name, provider='youtube', format='mp3'):
+def download_song(self, song_info, provider='youtube', format='mp3'):
     """Download a song.
 
     Parameters
     ----------
-    song_name : str
-        The song name.
+    song_info : dict
+        Contains information about the song.
+        name - The song name
+        [provider] (optional) - Known id of the song by [provider].
+        If present song will not be searched and will be directly
+        downloaded by this id.
     provider : str
         The provider which will download the song. Default: 'youtube'
     format : str
@@ -114,7 +118,7 @@ def download_song(self, song_name, provider='youtube', format='mp3'):
     if format not in SUPPORTED_FORMATS:
         raise ValueError('Format not supported: {}'.format(format))
 
-    song = get_song(song_name)
+    song = get_song(song_info['name'])
 
     if format in song['files']:
         if song['files'][format] == 'downloading':
@@ -132,22 +136,30 @@ def download_song(self, song_name, provider='youtube', format='mp3'):
             return
 
     song['files'][format] = 'downloading'
-    cache.set(song_name, song)
+    cache.set(song_info['name'], song)
 
     try:
+        song_id = song_info.get(provider)
         if provider == 'youtube':
-            song_id = youtube.get_song_id(song_name)
+            if 'youtube' not in song_info:
+                song_id = youtube.get_song_id(song_info['name'])
             youtube.download_song(song_id, format)
             add_song_file(
-                song_name, 'songs/{}.{}'.format(song_id, format), format)
+                song_info['name'],
+                'songs/{}.{}'.format(song_id, format), format)
         elif provider == 'soundcloud':
-            song_id, download_id = soundcloud.get_song_id(song_name)
+            if 'soundcloud' not in song_info:
+                song_id, download_id = soundcloud.get_song_id(
+                    song_info['name'])
+            else:
+                song_id, download_id = song_id
             soundcloud.download_song(download_id, format)
             add_song_file(
-                song_name, 'songs/{}.{}'.format(song_id, format), format)
+                song_info['name'],
+                'songs/{}.{}'.format(song_id, format), format)
         else:
             raise ValueError('Provider not found: {}'.format(provider))
     except:
         del song['files'][format]
-        cache.set(song_name, song)
+        cache.set(song_info['name'], song)
         raise

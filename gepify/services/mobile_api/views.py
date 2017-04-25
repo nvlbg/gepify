@@ -104,7 +104,8 @@ def download_song(song_name, format):
             )
             return jsonify(reason='Unsupported provider'), 400
 
-        songs.download_song.delay(song_name, format=format, provider=provider)
+        song = {'name': song_name}
+        songs.download_song.delay(song, format=format, provider=provider)
         return jsonify(
             refresh_after=30,
             message='Your song has started downloading.')

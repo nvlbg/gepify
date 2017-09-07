@@ -6,11 +6,11 @@ views = Blueprint('views', __name__)
 
 @views.route('/')
 def index():
-    influxdb.write({
+    influxdb.write_points([{
         'measurement': 'index_page_loads',
         'fields': {
             'value': 1
         }
-    })
+    }])
 
     return render_template('index.html')

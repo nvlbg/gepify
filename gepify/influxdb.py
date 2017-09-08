@@ -16,3 +16,11 @@ database = os.environ.get('INFLUXDB_DATABASE', 'gepify')
 client = InfluxDBClient(host, port, username, password, database)
 client.create_database(database)
 
+def count(metric):
+    client.write_points([{
+        'measurement': metric,
+        'fields': {
+            'value': 1
+        }
+    }])
+

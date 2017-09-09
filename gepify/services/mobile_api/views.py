@@ -9,14 +9,14 @@ from gepify.services.spotify.models import (
 )
 import requests
 import json
-from gepify.influxdb import count
+from gepify.influxdb import influxdb
 
 SPOTIFY_REDIRECT_URI = 'spotify-auth://callback'
 
 
 @mobile_api_service.route('/get_access_token/<code>')
 def get_access_token(code):
-    count('mobile_api.access_token_requests')
+    influxdb.count('mobile_api.access_token_requests')
     payload = {
         'grant_type': 'authorization_code',
         'code': code,
@@ -53,7 +53,7 @@ def get_access_token(code):
 
 @mobile_api_service.route('/refresh_access_token/<refresh_token>')
 def refresh_access_token(refresh_token):
-    count('mobile_api.refresh_access_token_requests')
+    influxdb.count('mobile_api.refresh_access_token_requests')
     payload = {
         'refresh_token': refresh_token,
         'grant_type': 'refresh_token'
@@ -88,7 +88,7 @@ def refresh_access_token(refresh_token):
 @mobile_api_service.route('/download_song/<path:song_name>/<format>')
 @access_key_required
 def download_song(song_name, format):
-    count('mobile_api.download_song_requests')
+    influxdb.count('mobile_api.download_song_requests')
 
     if format not in SUPPORTED_FORMATS:
         current_app.logger.warning(
@@ -115,7 +115,7 @@ def download_song(song_name, format):
             refresh_after=30,
             message='Your song has started downloading.')
 
-    count('mobile_api.downloaded_songs')
+    influxdb.count('mobile_api.downloaded_songs')
     song = songs.get_song(song_name)
     # TODO: temporary workaround with filename (until Flask 0.13 is released)
     return send_file(

@@ -216,7 +216,6 @@ class DeezerModelsTestCase(GepifyTestCase, ProfileMixin):
                 deezer.models.get_playlist('missing id')
 
 
-@mock.patch('influxdb.count')
 class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
     @classmethod
     def tearDownClass(cls):

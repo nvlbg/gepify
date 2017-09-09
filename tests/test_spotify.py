@@ -296,7 +296,6 @@ class SpotifyModelsTestCase(GepifyTestCase):
         self.assertEqual(get_song.call_count, len(playlist['tracks']))
 
 
-@mock.patch('influxdb.count')
 class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
     @classmethod
     def tearDownClass(cls):

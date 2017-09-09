@@ -11,13 +11,13 @@ import urllib
 from gepify.providers import (
     songs, playlists, SUPPORTED_FORMATS, SUPPORTED_PROVIDERS, MIMETYPES
 )
-from gepify.influxdb import count
+from gepify.influxdb import influxdb
 
 
 @deezer_service.route('/')
 @login_required
 def index():
-    count('deezer.index_page_visits')
+    influxdb.count('deezer.index_page_visits')
 
     playlists = models.get_playlists()
     return render_template(
@@ -31,7 +31,7 @@ def index():
 @deezer_service.route('/login')
 @logout_required
 def login():
-    count('deezer.login_attempts')
+    influxdb.count('deezer.login_attempts')
 
     state = get_random_str(16)
     session['deezer_auth_state'] = state
@@ -68,7 +68,7 @@ def callback():
         session.pop('deezer_auth_state', None)
         try:
             models.request_access_token(code)
-            count('deezer.logins')
+            influxdb.count('deezer.logins')
             return redirect(url_for('deezer.index'))
         except Exception as e:
             current_app.logger.error(
@@ -85,7 +85,7 @@ def logout():
     session.pop('deezer_expires_at', None)
     session.pop('deezer_user_id', None)
 
-    count('deezer.logouts')
+    influxdb.count('deezer.logouts')
 
     return redirect(url_for('views.index'))
 
@@ -106,7 +106,7 @@ def playlist(id):
 @deezer_service.route('/download_song/<path:song_name>/<format>')
 @login_required
 def download_song(song_name, format):
-    count('deezer.download_song_requests')
+    influxdb.count('deezer.download_song_requests')
 
     if format not in SUPPORTED_FORMATS:
         current_app.logger.warning(
@@ -136,7 +136,7 @@ def download_song(song_name, format):
             message='Your song has started downloading.'
                     'This page will automatically refresh after 30 seconds.')
 
-    count('deezer.downloaded_songs')
+    influxdb.count('deezer.downloaded_songs')
     song = songs.get_song(song_name)
     return send_file(
         '../' + song['files'][format],
@@ -149,7 +149,7 @@ def download_song(song_name, format):
 @deezer_service.route('/download_playlist', methods=['POST'])
 @login_required
 def download_playlist():
-    count('deezer.download_playlist_requests')
+    influxdb.count('deezer.download_playlist_requests')
 
     playlist_id = request.form['playlist_id']
     format = request.form.get('format', SUPPORTED_FORMATS[0])
@@ -190,7 +190,7 @@ def download_playlist():
         return render_template('show_message.html',
                                message='Your playlist is getting downloaded')
 
-    count('deezer.downloaded_playlists')
+    influxdb.count('deezer.downloaded_playlists')
     return send_file(
         '../' + playlist_data['path'],
         as_attachment=True,

@@ -22,3 +22,7 @@ htmlcov/*
 
 # celery files
 celerybeat-schedule
+
+# direnv files
+.envrc
+.direnv/

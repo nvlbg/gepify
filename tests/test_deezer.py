@@ -306,15 +306,18 @@ class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
     @mock.patch('gepify.providers.songs.get_song',
                 side_effect=lambda song_name: {'name': song_name, 'files': {}})
     def test_get_playlist(self, *args):
-        # TODO: find the flask option that fixes this
-        self.app.debug = False
         self.login()
         response = self.client.get(url_for('deezer.playlist', id='1'))
         self.assert200(response)
         self.assertIn(b'Playlist 1', response.data)
 
-        response = self.client.get(url_for('deezer.playlist', id='missing id'))
-        self.assert500(response)
+    @mock.patch('requests.get', side_effect=mocked_deezer_api_get)
+    def test_get_missing_playlist(self, *args):
+        self.app.config.update(PROPAGATE_EXCEPTIONS=True)
+        self.login()
+
+        with self.assertRaisesRegex(RuntimeError, 'Deezer API error'):
+            self.client.get(url_for('deezer.playlist', id='missing id'))
 
     @mock.patch('logging.Logger')
     def test_download_song_in_unsupported_format(self, *args):

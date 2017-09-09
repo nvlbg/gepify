@@ -1,12 +1,12 @@
 from . import spotify_service
 from flask import (
     session, render_template, redirect,
-    request, url_for, send_file, current_app
+    request, url_for, current_app
 )
 from .view_decorators import login_required, logout_required
 from . import models
 from .models import SPOTIFY_CLIENT_ID, SPOTIFY_REDIRECT_URI
-from ..util import get_random_str
+from ..util import (get_random_str, send_file)
 import urllib
 from gepify.providers import (
     songs, playlists, SUPPORTED_FORMATS, SUPPORTED_PROVIDERS, MIMETYPES
@@ -149,7 +149,7 @@ def download_song(song_name, format):
     return send_file(
         '../' + song['files'][format],
         as_attachment=True,
-        attachment_filename=song['name'],
+        attachment_filename='{}.{}'.format(song['name'], format),
         mimetype=MIMETYPES[format]
     )
 

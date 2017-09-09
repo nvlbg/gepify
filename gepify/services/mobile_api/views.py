@@ -1,5 +1,5 @@
 from . import mobile_api_service
-from flask import request, send_file, current_app, jsonify
+from flask import request, current_app, jsonify
 from .view_decorators import access_key_required
 from gepify.providers import (
     songs, SUPPORTED_FORMATS, SUPPORTED_PROVIDERS, MIMETYPES
@@ -10,6 +10,7 @@ from gepify.services.spotify.models import (
 import requests
 import json
 from gepify.influxdb import influxdb
+from ..util import send_file
 
 SPOTIFY_REDIRECT_URI = 'spotify-auth://callback'
 
@@ -117,10 +118,10 @@ def download_song(song_name, format):
 
     influxdb.count('mobile_api.downloaded_songs')
     song = songs.get_song(song_name)
-    # TODO: temporary workaround with filename (until Flask 0.13 is released)
+
     return send_file(
         '../' + song['files'][format],
         as_attachment=True,
-        # attachment_filename=song['name'],
+        attachment_filename='{}.{}'.format(song['name'], format),
         mimetype=MIMETYPES[format]
     )

@@ -1,7 +1,8 @@
 from flask import (
     session, render_template, redirect, request,
-    url_for, send_file, current_app
+    url_for, current_app
 )
+from ..util import send_file
 from . import youtube_service
 from .view_decorators import login_required, logout_required
 from oauth2client import client
@@ -135,7 +136,7 @@ def download_song(song_name, format):
     return send_file(
         '../' + song['files'][format],
         as_attachment=True,
-        attachment_filename=song['name'],
+        attachment_filename='{}.{}'.format(song['name'], format),
         mimetype=MIMETYPES[format]
     )
 

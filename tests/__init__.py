@@ -17,7 +17,6 @@ class GepifyTestCase(TestCase):
         self.client = self.app.test_client()
 
 
-@mock.patch('influxdb.count')
 class GepifyIndexTestCase(GepifyTestCase):
     def test_index(self):
         response = self.client.get(url_for('views.index'))

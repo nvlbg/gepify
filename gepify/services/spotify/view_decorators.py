@@ -1,5 +1,7 @@
 from flask import session, redirect, url_for, g, render_template, current_app
-from .models import request_access_token
+from .models import (
+    get_access_token_from_refresh_token, save_token_data_in_session
+)
 import time
 import spotipy
 from functools import wraps
@@ -17,13 +19,11 @@ def login_required(f):
 
         now = int(time.time())
         if now >= expires_at:
-            payload = {
-                'refresh_token': refresh_token,
-                'grant_type': 'refresh_token'
-            }
-
             try:
-                request_access_token(payload)
+                token_data = get_access_token_from_refresh_token(
+                        refresh_token)
+                save_token_data_in_session(token_data)
+
                 access_token = session['spotify_access_token']
             except Exception as e:
                 current_app.logger.error(

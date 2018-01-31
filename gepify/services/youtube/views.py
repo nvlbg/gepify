@@ -1,6 +1,6 @@
 from flask import (
     session, render_template, redirect, request,
-    url_for, current_app
+    url_for, current_app, jsonify
 )
 from ..util import send_file
 from . import youtube_service
@@ -14,6 +14,7 @@ from gepify.providers import (
     songs, playlists, SUPPORTED_FORMATS, SUPPORTED_PROVIDERS, MIMETYPES
 )
 from gepify.influxdb import influxdb
+from requests.utils import unquote
 
 
 @youtube_service.route('/')
@@ -191,3 +192,30 @@ def download_playlist():
         attachment_filename='{}.zip'.format(playlist['name']),
         mimetype='application/zip'
     )
+
+
+@youtube_service.route('/get_access_token/<code>')
+def get_access_token(code):
+    influxdb.count('youtube.access_token_requests')
+
+    try:
+        code = unquote(code)
+        flow = client.OAuth2WebServerFlow(
+            YOUTUBE_CLIENT_ID,
+            YOUTUBE_CLIENT_SECRET,
+            scope='https://www.googleapis.com/auth/youtube.readonly',
+            redirect_uri=YOUTUBE_REDIRECT_URI
+        )
+        credentials = flow.step2_exchange(code)
+        return jsonify(
+            access_token=credentials.access_token,
+            refresh_token=credentials.refresh_token,
+            token_expiry=credentials.token_expiry
+        )
+    except Exception as e:
+        current_app.logger.error(
+            'Could not authenticate youtube user: {}'.format(e))
+        return jsonify(
+            error='There was an error while trying to authenticate you.'
+                  'Please, try again.'), 503
+

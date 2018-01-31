@@ -1,7 +1,7 @@
 from . import spotify_service
 from flask import (
     session, render_template, redirect,
-    request, url_for, current_app
+    request, url_for, current_app, jsonify
 )
 from .view_decorators import login_required, logout_required
 from . import models
@@ -67,14 +67,10 @@ def callback():
                     'Please, try again.'), 503
     else:
         session.pop('spotify_auth_state', None)
-        payload = {
-            'grant_type': 'authorization_code',
-            'code': code,
-            'redirect_uri': SPOTIFY_REDIRECT_URI
-        }
 
         try:
-            models.request_access_token(payload)
+            token_data = models.get_access_token_from_code(code)
+            models.save_token_data_in_session(token_data)
             influxdb.count('spotify.logins')
             return redirect(url_for('spotify.index'))
         except Exception as e:
@@ -205,3 +201,20 @@ def download_playlist():
         attachment_filename='{}.zip'.format(playlist['name']),
         mimetype='application/zip'
     )
+
+
+@spotify_service.route('/get_access_token/<code>')
+def get_access_token(code):
+    influxdb.count('spotify.access_token_requests')
+
+    try:
+        tokens = models.get_access_token_from_code(
+                code, 'spotify-auth://callback')
+        return jsonify(**tokens)
+    except Exception as e:
+        current_app.logger.error(
+            'Could not authenticate spotify user: {}'.format(e))
+        return jsonify(
+            error='There was an error while trying to authenticate you.'
+                  'Please, try again.'), 503
+

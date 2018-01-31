@@ -10,8 +10,8 @@ DEEZER_SECRET = os.environ.get('DEEZER_SECRET')
 DEEZER_REDIRECT_URI = os.environ.get('DEEZER_REDIRECT_URI')
 
 
-def request_access_token(code):
-    """Request access token from auth code and save it in the session.
+def get_access_token_data(code):
+    """Request access token from auth code
 
     Parameters
     ----------
@@ -32,17 +32,45 @@ def request_access_token(code):
         '&code={}'.format(code))
 
     if auth_request.status_code == 200:
+        if auth_request.text == 'wrong code':
+            raise RuntimeError('Wrong code')
+
         response_data = json.loads(auth_request.text)
         access_token = response_data['access_token']
-        expires_at = int(time.time()) + int(response_data['expires'])
+        expires = response_data['expires']
 
-        session['deezer_access_token'] = access_token
-        session['deezer_expires_at'] = expires_at
+        return {
+            'access_token': access_token,
+            'expires': expires
+        }
     else:
         raise RuntimeError('Could not get authentication token')
 
 
-def get_access_token():
+def request_access_token(code):
+    """Request access token from auth code and save it in the session.
+
+    Parameters
+    ----------
+    code : str
+        The authentication code.
+
+    Raises
+    ------
+    RuntimeError
+        If deezer API gives an error.
+    """
+
+    access_token_data = get_access_token_data(code)
+
+    access_token = access_token_data['access_token']
+    expires_at = int(time.time()) + int(access_token_data['expires'])
+
+    session['deezer_access_token'] = access_token
+    session['deezer_expires_at'] = expires_at
+
+
+def get_access_token_from_session():
     """Get access token from the session if it exists.
 
     Raises
@@ -79,7 +107,7 @@ def get_playlists():
         If deezer API gives an error.
     """
 
-    access_token = get_access_token()
+    access_token = get_access_token_from_session()
 
     playlists_request = requests.get(
         'http://api.deezer.com/user/me/playlists' +
@@ -128,7 +156,7 @@ def get_playlist(playlist_id):
         If deezer API gives an error.
     """
 
-    access_token = get_access_token()
+    access_token = get_access_token_from_session()
 
     playlist_request = requests.get(
         'http://api.deezer.com/playlist/{}'.format(playlist_id) +

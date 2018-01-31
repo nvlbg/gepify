@@ -1,5 +1,7 @@
 from . import GepifyTestCase
 from gepify.services import deezer
+from gepify.providers import songs
+from werkzeug.contrib.cache import SimpleCache
 from urllib import parse
 from unittest import mock
 from flask import url_for, session
@@ -163,11 +165,12 @@ class DeezerModelsTestCase(GepifyTestCase, ProfileMixin):
 
     def test_get_access_token(self):
         with self.assertRaisesRegex(RuntimeError, 'User not authenticated'):
-            deezer.models.get_access_token()
+            deezer.models.get_access_token_from_session()
 
         with self.client:
             session['deezer_access_token'] = 'dummy token'
-            self.assertEqual(deezer.models.get_access_token(), 'dummy token')
+            self.assertEqual(
+                deezer.models.get_access_token_from_session(), 'dummy token')
 
     def test_get_song_name(self):
         track = {
@@ -217,6 +220,9 @@ class DeezerModelsTestCase(GepifyTestCase, ProfileMixin):
 
 
 class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
+    def setUp(self):
+        songs.cache = SimpleCache()
+
     @classmethod
     def tearDownClass(cls):
         if os.path.isfile('test song.mp3'):

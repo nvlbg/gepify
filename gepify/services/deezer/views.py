@@ -1,7 +1,7 @@
 from . import deezer_service
 from flask import (
     session, render_template, redirect, request,
-    url_for, current_app
+    url_for, current_app, jsonify
 )
 from .view_decorators import login_required, logout_required
 from . import models
@@ -197,3 +197,19 @@ def download_playlist():
         attachment_filename='{}.zip'.format(playlist['name']),
         mimetype='application/zip'
     )
+
+
+@deezer_service.route('/get_access_token/<code>')
+def get_access_token(code):
+    influxdb.count('deezer.access_token_requests')
+
+    try:
+        tokens = models.get_access_token_from_code(code)
+        return jsonify(**tokens)
+    except Exception as e:
+        current_app.logger.error(
+            'Could not authenticate deezer user: {}'.format(e))
+        return jsonify(
+            error='There was an error while trying to authenticate you.'
+                  'Please, try again.'), 503
+

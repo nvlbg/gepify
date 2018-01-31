@@ -5,8 +5,11 @@ import spotipy
 from urllib import parse
 from unittest import mock
 from gepify.services import spotify
+from gepify.providers import songs
+from werkzeug.contrib.cache import SimpleCache
 import json
 import os
+import time
 
 
 class MockResponse:
@@ -190,56 +193,67 @@ class SpotifyDecoratorsTestCase(GepifyTestCase, ProfileMixin):
 class SpotifyModelsTestCase(GepifyTestCase):
     def setUp(self):
         g.spotipy = MockSpotipy()
+        songs.cache = SimpleCache()
 
     def tearDown(self):
         g.spotipy = None
 
     @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
-    def test_request_access_token_with_authorization_code_request(self, post):
-        payload = {
-            'grant_type': 'authorization_code',
-            'code': '',
-            'redirect_uri': ''
-        }
-
-        with self.client.session_transaction() as sess:
-            sess['spotify_access_token'] = 'some random test token'
-            sess['spotify_refresh_token'] = 'some random refresh token'
-        self.assertNotIn('spotify_expires_at', session)
-        spotify.models.request_access_token(payload)
+    def test_get_access_token_from_code(self, post):
+        token_data =spotify.models.get_access_token_from_code('some code')
         self.assertEqual(post.call_count, 1)
-        self.assertEqual(session['spotify_access_token'], 'dummy code')
-        self.assertEqual(session['spotify_refresh_token'], 'refresh me')
-        self.assertIn('spotify_expires_at', session)
+        self.assertEqual(token_data['access_token'], 'dummy code')
+        self.assertEqual(token_data['refresh_token'], 'refresh me')
+        self.assertEqual(token_data['expires_in'], 60)
 
     @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
-    def test_request_access_token_with_refresh_token_request(self, post):
-        payload = {
-            'grant_type': 'refresh_token',
-            'refresh_token': 'refresh me'
-        }
-
-        with self.client.session_transaction() as sess:
-            sess['spotify_access_token'] = 'some random test token'
-            sess['spotify_refresh_token'] = 'some random refresh token'
-        self.assertNotIn('spotify_expires_at', session)
-        spotify.models.request_access_token(payload)
+    def test_get_access_token_from_refresh_token(self, post):
+        token_data = spotify.models.get_access_token_from_refresh_token(
+                'refresh me')
         self.assertEqual(post.call_count, 1)
-        self.assertEqual(session['spotify_access_token'], 'new dummy code')
-        self.assertEqual(session['spotify_refresh_token'], 'refresh me again')
-        self.assertIn('spotify_expires_at', session)
+        self.assertEqual(token_data['access_token'], 'new dummy code')
+        self.assertEqual(token_data['refresh_token'], 'refresh me again')
+        self.assertEqual(token_data['expires_in'], 60)
+
+    def test_save_token_data_in_session(self):
+        token_data = {
+            'access_token': 'access token',
+            'refresh_token': 'refresh token',
+            'expires_in': 60
+        }
+        spotify.models.save_token_data_in_session(token_data)
+        self.assertEqual(session['spotify_access_token'], 'access token')
+        self.assertEqual(session['spotify_refresh_token'], 'refresh token')
+        self.assertEqual(session['spotify_expires_at'], int(time.time()) + 60)
+
+    # @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    # def test_request_access_token_with_refresh_token_request(self, post):
+    #     payload = {
+    #         'grant_type': 'refresh_token',
+    #         'refresh_token': 'refresh me'
+    #     }
+
+    #     with self.client.session_transaction() as sess:
+    #         sess['spotify_access_token'] = 'some random test token'
+    #         sess['spotify_refresh_token'] = 'some random refresh token'
+    #     self.assertNotIn('spotify_expires_at', session)
+    #     spotify.models.request_access_token(payload)
+    #     self.assertEqual(post.call_count, 1)
+    #     self.assertEqual(session['spotify_access_token'], 'new dummy code')
+    #     self.assertEqual(session['spotify_refresh_token'], 'refresh me again')
+    #     self.assertIn('spotify_expires_at', session)
 
     @mock.patch('requests.post', side_effect=mocked_spotify_api_404)
-    def test_request_access_token_with_spotify_error(self, post):
-        payload = {
-            'grant_type': 'authorization_code',
-            'code': '',
-            'redirect_uri': ''
-        }
-
+    def test_get_access_token_from_code_with_error(self, post):
         with self.assertRaisesRegex(
                 RuntimeError, 'Could not get authentication token'):
-            spotify.models.request_access_token(payload)
+            spotify.models.get_access_token_from_code('code')
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_404)
+    def test_get_access_token_from_refresh_token_with_error(self, post):
+        with self.assertRaisesRegex(
+                RuntimeError, 'Could not get authentication token'):
+            spotify.models.get_access_token_from_refresh_token('token')
 
     def test_get_username(self):
         self.assertEqual(spotify.models.get_username(), 'test_user')
@@ -297,6 +311,9 @@ class SpotifyModelsTestCase(GepifyTestCase):
 
 
 class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
+    def setUp(self):
+        songs.cache = SimpleCache()
+
     @classmethod
     def tearDownClass(cls):
         if os.path.isfile('test song.mp3'):
@@ -504,3 +521,25 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
             data={'playlist_id': 'test_user:1', 'format': 'mp3'})
         self.assert200(response)
         self.assertIn(b'Your playlist is getting downloaded', response.data)
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    def test_get_access_token(self, post):
+        response = self.client.get(
+            '/spotify/get_access_token/code'
+        )
+        self.assertEqual(post.call_count, 1)
+        self.assert200(response)
+        self.assertIn(b'dummy code', response.data)
+        self.assertIn(b'refresh me', response.data)
+        self.assertIn(b'60', response.data)
+
+    @mock.patch('logging.Logger')
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_404)
+    def test_get_access_token(self, post, logger):
+        response = self.client.get(
+            '/spotify/get_access_token/code'
+        )
+        self.assertEqual(post.call_count, 1)
+        self.assertEqual(response.status_code, 503)
+        self.assertIn(b'There was an error while trying to authenticate you.'
+                      b'Please, try again.', response.data)

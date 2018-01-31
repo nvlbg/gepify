@@ -13,20 +13,7 @@ SPOTIFY_AUTHORIZATION_DATA = base64.b64encode(bytes(
     SPOTIFY_CLIENT_ID + ':' + SPOTIFY_CLIENT_SECRET, 'utf-8')).decode('utf-8')
 
 
-def request_access_token(payload):
-    """Request access token from auth code and save it in the session.
-
-    Parameters
-    ----------
-    code : str
-        The authentication code.
-
-    Raises
-    ------
-    RuntimeError
-        If spotify API gives an error.
-    """
-
+def _get_token(payload):
     headers = {
         'Authorization': 'Basic {}'.format(SPOTIFY_AUTHORIZATION_DATA)
     }
@@ -38,14 +25,79 @@ def request_access_token(payload):
         response_data = json.loads(post_request.text)
         access_token = response_data['access_token']
         refresh_token = response_data.get('refresh_token', None)
-        expires_at = int(time.time()) + int(response_data['expires_in'])
+        expires_in = response_data['expires_in']
 
-        session['spotify_access_token'] = access_token
-        if refresh_token:
-            session['spotify_refresh_token'] = refresh_token
-        session['spotify_expires_at'] = expires_at
+        return {
+            'access_token': access_token,
+            'refresh_token': refresh_token,
+            'expires_in': expires_in
+        }
     else:
         raise RuntimeError('Could not get authentication token')
+
+
+def get_access_token_from_code(code, redirect_uri=SPOTIFY_REDIRECT_URI):
+    """Request access and refresh tokens from auth code
+
+    Parameters
+    ----------
+    code : str
+        The authentication code.
+    redirect_uri : (optional) str
+        The redirect uri used when getting the code
+
+    Raises
+    ------
+    RuntimeError
+        If spotify API gives an error.
+    """
+    payload = {
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': redirect_uri
+    }
+
+    return _get_token(payload)
+
+
+def get_access_token_from_refresh_token(refresh_token):
+    """Request access and refresh tokens from refresh token
+
+    Parameters
+    ----------
+    refresh_token : str
+        The refresh token from previous authentication.
+
+    Raises
+    ------
+    RuntimeError
+        If spotify API gives an error.
+    """
+    payload = {
+        'refresh_token': refresh_token,
+        'grant_type': 'refresh_token'
+    }
+
+    return _get_token(payload)
+
+
+def save_token_data_in_session(access_token_data):
+    """Saves token data in session
+
+    Parameters
+    ----------
+    access_token_data : dict
+        The token data from get_access_token_from_code
+        or get_access_token_from_refresh_token
+    """
+    access_token = access_token_data['access_token']
+    refresh_token = access_token_data['refresh_token']
+    expires_at = int(time.time()) + int(access_token_data['expires_in'])
+
+    session['spotify_access_token'] = access_token
+    if refresh_token:
+        session['spotify_refresh_token'] = refresh_token
+    session['spotify_expires_at'] = expires_at
 
 
 def get_username():

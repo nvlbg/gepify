@@ -1,10 +1,51 @@
 from flask import g
 import os
 import gepify.providers.songs as songs
+import requests
+import json
 
 YOUTUBE_CLIENT_ID = os.environ.get('YOUTUBE_CLIENT_ID')
 YOUTUBE_CLIENT_SECRET = os.environ.get('YOUTUBE_CLIENT_SECRET')
 YOUTUBE_REDIRECT_URI = os.environ.get('YOUTUBE_REDIRECT_URI')
+
+
+def refresh_tokens(refresh_token):
+    """Request access token from refresh token
+
+    Parameters
+    ----------
+    refresh_token : str
+        The refresh token from previous authentication.
+
+    Raises
+    ------
+    RuntimeError
+        If youtube API gives an error.
+    """
+    payload = {
+        'client_id': YOUTUBE_CLIENT_ID,
+        'client_secret': YOUTUBE_CLIENT_SECRET,
+        'refresh_token': refresh_token,
+        'grant_type': 'refresh_token'
+    }
+
+    request = requests.post(
+        'https://www.googleapis.com/oauth2/v4/token',
+        data=payload
+    )
+
+    if request.status_code == 200:
+        response= json.loads(request.text)
+
+        access_token = response['access_token']
+        expires_in = response['expires_in']
+
+        return {
+            'access_token': access_token,
+            'expires_in': expires_in
+        }
+    else:
+        raise RuntimeError('Could not refresh token')
 
 
 def get_playlists():

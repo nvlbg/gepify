@@ -52,6 +52,10 @@ def mocked_spotify_api_404(*args, **kwargs):
     return MockResponse({}, 404)
 
 
+def mocked_spotify_api_401(*args, **kwargs):
+    return MockResponse({}, 401)
+
+
 class MockSpotipy:
     def __init__(self, auth=None):
         self.auth = auth
@@ -540,6 +544,27 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
             '/spotify/get_access_token/code'
         )
         self.assertEqual(post.call_count, 1)
-        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.status_code, 401)
         self.assertIn(b'There was an error while trying to authenticate you.'
                       b'Please, try again.', response.data)
+
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
+    def test_refresh_access_token(self, post):
+        response = self.client.get(
+            '/spotify/refresh_access_token/refresh me'
+        )
+        self.assertEqual(post.call_count, 1)
+        self.assert200(response)
+        self.assertIn(b'new dummy code', response.data)
+        self.assertIn(b'refresh me again', response.data)
+        self.assertIn(b'60', response.data)
+
+    @mock.patch('logging.Logger')
+    @mock.patch('requests.post', side_effect=mocked_spotify_api_401)
+    def test_get_access_token(self, post, logger):
+        response = self.client.get(
+            '/spotify/refresh_access_token/refresh me'
+        )
+        self.assertEqual(post.call_count, 1)
+        self.assertEqual(response.status_code, 401)
+        self.assertIn(b'Unable to refresh token.', response.data)

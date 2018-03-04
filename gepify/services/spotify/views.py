@@ -12,6 +12,7 @@ from gepify.providers import (
     songs, playlists, SUPPORTED_FORMATS, SUPPORTED_PROVIDERS, MIMETYPES
 )
 from gepify.influxdb import influxdb
+from requests.utils import unquote
 
 
 @spotify_service.route('/')
@@ -216,5 +217,18 @@ def get_access_token(code):
             'Could not authenticate spotify user: {}'.format(e))
         return jsonify(
             error='There was an error while trying to authenticate you.'
-                  'Please, try again.'), 503
+                  'Please, try again.'), 401
+
+@spotify_service.route('/refresh_access_token/<refresh_token>')
+def refresh_access_token(refresh_token):
+    influxdb.count('spotify.refresh_token_requests')
+
+    try:
+        refresh_token = unquote(refresh_token)
+        tokens = models.get_access_token_from_refresh_token(refresh_token)
+        return jsonify(**tokens)
+    except Exception as e:
+        current_app.logger.error(
+            'Could not refresh access token: {}'.format(e))
+        return jsonify(error='Unable to refresh token.'), 401
 

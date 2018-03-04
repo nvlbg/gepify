@@ -219,3 +219,20 @@ def get_access_token(code):
             error='There was an error while trying to authenticate you.'
                   'Please, try again.'), 503
 
+
+@youtube_service.route('/refresh_access_token/<refresh_token>')
+def refresh_access_token(refresh_token):
+    influxdb.count('youtube.refresh_token_requests')
+
+    try:
+        refresh_token = unquote(refresh_token)
+        credentials = models.refresh_tokens(refresh_token)
+        return jsonify(
+            access_token=credentials['access_token'],
+            expires_in=credentials['expires_in']
+        )
+    except Exception as e:
+        current_app.logger.error(
+            'Could not authenticate youtube user: {}'.format(e))
+        return jsonify(error='Unable to refresh token.'), 503
+

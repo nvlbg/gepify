@@ -17,7 +17,8 @@ setup(
         'soundcloud>=0.5.0',
         'google-api-python-client>=1.5.0',
         'youtube-dl>=2016.6.27',
-        'gunicorn>=19.6.0'
+        'gunicorn>=19.6.0',
+        'influxdb>=4.1.1'
     ],
     tests_require=[
         'coverage>=4.1'

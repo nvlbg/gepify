@@ -77,15 +77,22 @@ You also need to run celery beat to run periodic tasks, so open another terminal
 
 Now you can start the webserver in a new terminal:
 
-    python3 runserver.py
+    FLASK_ENV=development FLASK_APP=gepify flask run
 
 In the terminal you will see something like:
 
-    $ python3 runserver.py 
+    $ FLASK_ENV=development FLASK_APP=gepify flask run
+     * Serving Flask app "gepify" (lazy loading)
+     * Environment: development
+     * Debug mode: on
      * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
      * Restarting with stat
      * Debugger is active!
-     * Debugger pin code: 166-095-336
+     * Debugger PIN: 289-037-080
+
+Alternatively, though not recommended for development, you can run:
+
+	python3 runserver.py
 
 Now you can navigate your browser to `http://127.0.0.1:5000/` and see the webpage.
 

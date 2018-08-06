@@ -12,7 +12,7 @@ chardet==3.0.4            # via requests
 click==6.7                # via flask
 coverage==4.5.1
 flask-testing==0.7.1
-flask==0.12.2
+flask==1.0.2
 fudge==1.1.1              # via soundcloud
 google-api-python-client==1.6.6
 gunicorn==19.7.1

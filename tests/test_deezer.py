@@ -256,9 +256,8 @@ class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertIn(b'You need to be logged out to see this page',
                       response.data)
 
-    @mock.patch('logging.Logger')
     @mock.patch('requests.get', side_effect=mocked_deezer_api_get)
-    def test_login_callback(self, get, *args):
+    def test_login_callback(self, get):
         response = self.client.get(
             url_for('deezer.callback', error_reason='access_denied'))
         self.assertEqual(response.status_code, 503)
@@ -281,9 +280,8 @@ class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertRedirects(response, url_for('deezer.index'))
         self.assertEqual(get.call_count, 1)
 
-    @mock.patch('logging.Logger')
     @mock.patch('requests.get', side_effect=mocked_deezer_api_get)
-    def test_login_callback_with_deezer_error(self, get, *args):
+    def test_login_callback_with_deezer_error(self, get):
         with self.client.session_transaction() as sess:
             sess['deezer_auth_state'] = 'some state'
 
@@ -325,8 +323,7 @@ class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
         with self.assertRaisesRegex(RuntimeError, 'Deezer API error'):
             self.client.get(url_for('deezer.playlist', id='missing id'))
 
-    @mock.patch('logging.Logger')
-    def test_download_song_in_unsupported_format(self, *args):
+    def test_download_song_in_unsupported_format(self):
         self.login()
         response = self.client.get(
             url_for('deezer.download_song',
@@ -334,7 +331,7 @@ class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertEqual(response.status_code, 400)
         self.assertIn(b'Unsupported format', response.data)
 
-    @mock.patch('logging.Logger')
+    # @mock.patch('logging.Logger')
     def test_download_song_with_unsupported_provider(self, *args):
         self.login()
         response = self.client.get(
@@ -374,7 +371,7 @@ class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertTrue(response.content_type.startswith('audio'))
         response.close()
 
-    @mock.patch('logging.Logger')
+    # @mock.patch('logging.Logger')
     @mock.patch('gepify.providers.songs.has_song_format',
                 side_effect=lambda song, format: True)
     @mock.patch('gepify.providers.songs.get_song',
@@ -388,7 +385,7 @@ class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assert500(response)
         response.close()
 
-    @mock.patch('logging.Logger')
+    # @mock.patch('logging.Logger')
     @mock.patch('requests.get', side_effect=mocked_deezer_api_get)
     def test_download_playlist_with_wrong_post_data(self, *args):
         self.login()
@@ -442,7 +439,6 @@ class DeezerViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertEqual(response.content_type, 'application/zip')
         response.close()
 
-    @mock.patch('logging.Logger')
     @mock.patch('requests.get', side_effect=mocked_deezer_api_get)
     @mock.patch('gepify.providers.playlists.has_playlist',
                 side_effect=lambda *args: True)

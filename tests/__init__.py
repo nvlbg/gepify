@@ -2,6 +2,7 @@ import gepify
 from flask_testing import TestCase
 from flask import url_for
 from unittest import mock
+import logging
 
 
 class GepifyTestCase(TestCase):
@@ -11,6 +12,8 @@ class GepifyTestCase(TestCase):
         self.app.config['DEBUG'] = True
         self.app.config['PROPAGATE_EXCEPTIONS'] = False
         self.app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
+        # skip log messages during tests
+        self.app.logger.setLevel(logging.CRITICAL)
         return self.app
 
     def setUp(self):

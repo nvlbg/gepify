@@ -1,5 +1,5 @@
 from . import mobile_api_service
-from flask import request, current_app, jsonify
+from flask import request, current_app, jsonify, send_file
 from .view_decorators import access_key_required
 from gepify.providers import (
     songs, SUPPORTED_FORMATS, SUPPORTED_PROVIDERS, MIMETYPES
@@ -10,7 +10,6 @@ from gepify.services.spotify.models import (
 import requests
 import json
 from gepify.influxdb import influxdb
-from ..util import send_file
 
 SPOTIFY_REDIRECT_URI = 'spotify-auth://callback'
 

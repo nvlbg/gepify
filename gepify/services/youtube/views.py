@@ -1,8 +1,8 @@
 from flask import (
     session, render_template, redirect, request,
-    url_for, current_app, jsonify
+    url_for, current_app, jsonify, abort, send_file
 )
-from ..util import send_file
+from werkzeug.exceptions import BadRequestKeyError
 from . import youtube_service
 from .view_decorators import login_required, logout_required
 from oauth2client import client
@@ -146,9 +146,13 @@ def download_song(song_name, format):
 @login_required
 def download_playlist():
     influxdb.count('youtube.download_playlist_requests')
-    playlist_id = request.form['playlist_id']
-    format = request.form.get('format', SUPPORTED_FORMATS[0])
-    provider = request.form.get('provider', SUPPORTED_PROVIDERS[0])
+
+    try:
+        playlist_id = request.form['playlist_id']
+        format = request.form.get('format', SUPPORTED_FORMATS[0])
+        provider = request.form.get('provider', SUPPORTED_PROVIDERS[0])
+    except BadRequestKeyError:
+        abort(400)
 
     if format not in SUPPORTED_FORMATS:
         current_app.logger.warning(
@@ -235,4 +239,3 @@ def refresh_access_token(refresh_token):
         current_app.logger.error(
             'Could not authenticate youtube user: {}'.format(e))
         return jsonify(error='Unable to refresh token.'), 503
-

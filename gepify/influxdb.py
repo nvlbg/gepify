@@ -31,5 +31,5 @@ class Client:
                 }
             }])
 
-influxdb = Client()
 
+influxdb = Client()

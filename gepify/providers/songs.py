@@ -159,7 +159,7 @@ def download_song(self, song_info, provider='youtube', format='mp3'):
                 'songs/{}.{}'.format(song_id, format), format)
         else:
             raise ValueError('Provider not found: {}'.format(provider))
-    except:
+    except Exception:
         del song['files'][format]
         cache.set(song_info['name'], song)
         raise

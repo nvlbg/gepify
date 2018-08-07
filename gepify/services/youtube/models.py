@@ -35,7 +35,7 @@ def refresh_tokens(refresh_token):
     )
 
     if request.status_code == 200:
-        response= json.loads(request.text)
+        response = json.loads(request.text)
 
         access_token = response['access_token']
         expires_in = response['expires_in']

@@ -1,12 +1,13 @@
 from . import deezer_service
 from flask import (
     session, render_template, redirect, request,
-    url_for, current_app, jsonify
+    url_for, current_app, jsonify, abort, send_file
 )
+from werkzeug.exceptions import BadRequestKeyError
 from .view_decorators import login_required, logout_required
 from . import models
 from .models import DEEZER_APP_ID, DEEZER_REDIRECT_URI
-from ..util import (get_random_str, send_file)
+from ..util import get_random_str
 import urllib
 from gepify.providers import (
     songs, playlists, SUPPORTED_FORMATS, SUPPORTED_PROVIDERS, MIMETYPES
@@ -151,9 +152,12 @@ def download_song(song_name, format):
 def download_playlist():
     influxdb.count('deezer.download_playlist_requests')
 
-    playlist_id = request.form['playlist_id']
-    format = request.form.get('format', SUPPORTED_FORMATS[0])
-    provider = request.form.get('provider', SUPPORTED_PROVIDERS[0])
+    try:
+        playlist_id = request.form['playlist_id']
+        format = request.form.get('format', SUPPORTED_FORMATS[0])
+        provider = request.form.get('provider', SUPPORTED_PROVIDERS[0])
+    except BadRequestKeyError:
+        abort(400)
 
     if format not in SUPPORTED_FORMATS:
         current_app.logger.warning(
@@ -212,4 +216,3 @@ def get_access_token(code):
         return jsonify(
             error='There was an error while trying to authenticate you.'
                   'Please, try again.'), 503
-

@@ -6,7 +6,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'Flask>=1.0.2',
-        'Flask-Testing>=0.4.2',
+        'Flask-Testing>=0.7.1',
         'celery>=3.1.23',
         'amqp>=1.4.9',
         'redis>=2.10.5',

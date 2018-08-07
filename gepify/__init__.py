@@ -1,6 +1,7 @@
 """Download your online playlists"""
 
 from flask import Flask
+from flask.logging import default_handler
 from .services import services
 import os
 import logging
@@ -22,6 +23,7 @@ def create_app():
             '[in %(pathname)s:%(lineno)d]'
         ))
         app.logger.addHandler(file_handler)
+        app.logger.removeHandler(default_handler)
 
     for service in services:
         app.register_blueprint(service)

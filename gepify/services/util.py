@@ -13,17 +13,17 @@ def get_random_str(length):
     return ''.join(
         random.choice(string.ascii_lowercase) for i in range(length))
 
-# TODO: temporary workaround until flask 0.13
+# TODO: temporary workaround until flask 1.0.3
 def send_file(filename, attachment_filename, mimetype, **kwargs):
     response = flask_send_file(filename, mimetype=mimetype)
 
     try:
-        attachment_filename = attachment_filename.encode('latin-1')
+        attachment_filename = attachment_filename.encode('ascii')
     except UnicodeEncodeError:
         filenames = {
             'filename': unicodedata
                 .normalize('NFKD', attachment_filename)
-                .encode('latin-1', 'ignore'),
+                .encode('ascii', 'ignore'),
             'filename*': "UTF-8''{}".format(
                 url_quote(attachment_filename)),
         }

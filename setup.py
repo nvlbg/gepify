@@ -5,18 +5,19 @@ setup(
     version='0.1',
     packages=find_packages(),
     install_requires=[
-        'Flask>=0.10.1',
+        'Flask>=0.12.3',
         'Flask-Testing>=0.4.2',
         'celery>=3.1.23',
         'amqp>=1.4.9',
         'redis>=2.10.5',
         'coverage>=4.1',
         'Werkzeug>=0.11.9',
-        'requests>=2.10.0',
+        'requests>=2.20.0',
+        'urllib3>=1.23',  # pin version, not depending on it
         'spotipy>=2.3.8',
         'soundcloud>=0.5.0',
         'google-api-python-client>=1.5.0',
-        'youtube-dl>=2016.6.27',
+        'youtube-dl>=2019.02.18',
         'gunicorn>=19.6.0',
         'influxdb>=4.1.1'
     ],

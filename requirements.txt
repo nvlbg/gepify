@@ -12,7 +12,7 @@ chardet==3.0.4            # via requests
 click==6.7                # via flask
 coverage==4.5.1
 flask-testing==0.7.1
-flask==0.12.2
+flask==1.0.2
 fudge==1.1.1              # via soundcloud
 google-api-python-client==1.6.6
 gunicorn==19.7.1
@@ -29,14 +29,14 @@ pyasn1==0.4.2             # via oauth2client, pyasn1-modules, rsa
 python-dateutil==2.7.2    # via influxdb
 pytz==2018.3              # via celery, influxdb
 redis==2.10.6
-requests==2.18.4
+requests==2.21.0
 rsa==3.4.2                # via oauth2client
 simplejson==3.13.2        # via soundcloud
 six==1.11.0               # via google-api-python-client, influxdb, oauth2client, python-dateutil
 soundcloud==0.5.0
 spotipy==2.4.4
 uritemplate==3.0.0        # via google-api-python-client
-urllib3==1.22             # via requests
+urllib3==1.24.1
 vine==1.1.4               # via amqp
 werkzeug==0.14.1
-youtube-dl==2018.4.3
+youtube-dl==2019.2.18

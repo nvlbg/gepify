@@ -144,7 +144,7 @@ def download_song(song_name, format):
     influxdb.count('spotify.downloaded_songs')
     song = songs.get_song(song_name)
     return send_file(
-        '../' + song['files'][format],
+        song['files'][format],
         as_attachment=True,
         attachment_filename='{}.{}'.format(song['name'], format),
         mimetype=MIMETYPES[format]
@@ -200,7 +200,7 @@ def download_playlist():
 
     influxdb.count('spotify.downloaded_playlists')
     return send_file(
-        '../' + playlist_data['path'],
+        playlist_data['path'],
         as_attachment=True,
         attachment_filename='{}.zip'.format(playlist['name']),
         mimetype='application/zip'

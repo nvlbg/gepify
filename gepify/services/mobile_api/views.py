@@ -120,7 +120,7 @@ def download_song(song_name, format):
     song = songs.get_song(song_name)
 
     return send_file(
-        '../' + song['files'][format],
+        song['files'][format],
         as_attachment=True,
         attachment_filename='{}.{}'.format(song['name'], format),
         mimetype=MIMETYPES[format]

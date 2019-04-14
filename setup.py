@@ -7,7 +7,7 @@ setup(
     install_requires=[
         'Flask>=0.12.3',
         'Flask-Testing>=0.4.2',
-        'celery>=3.1.23',
+        'celery>=4.3',
         'amqp>=1.4.9',
         'redis>=2.10.5',
         'coverage>=4.1',
@@ -17,7 +17,7 @@ setup(
         'spotipy>=2.3.8',
         'soundcloud>=0.5.0',
         'google-api-python-client>=1.5.0',
-        'youtube-dl>=2019.02.18',
+        'youtube-dl>=2019.04.07',
         'gunicorn>=19.6.0',
         'influxdb>=4.1.1'
     ],

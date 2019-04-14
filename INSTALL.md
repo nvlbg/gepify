@@ -61,6 +61,7 @@ Here are the configuration options:
  - DEEZER_APP_ID: your deezer application id. You can get one from [deezer's developpers page](http://developers.deezer.com/myapps)
  - DEEZER_SECRET: the deezer client secret. 
  - DEEZER_REDIRECT_URI: the redirect uri, as described in the OAuth2 specification.
+ - DATA_DIRECTORY: the directory where songs and playlists will be stored (default is current directory)
 
 Running the server
 ------------------

@@ -7,6 +7,11 @@
     different sources (such as youtube or soundcloud).
 """
 
+import os
+
+DATA_DIRECTORY = os.environ.get('DATA_DIRECTORY', '.')
+SONGS_DIRECTORY = '{}/songs'.format(DATA_DIRECTORY)
+PLAYLISTS_DIRECTORY = '{}/playlists'.format(DATA_DIRECTORY)
 SUPPORTED_FORMATS = ('mp3', 'ogg', 'opus', 'aac')
 SUPPORTED_PROVIDERS = ('youtube', 'soundcloud')
 MIMETYPES = {

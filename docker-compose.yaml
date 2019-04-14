@@ -1,0 +1,50 @@
+version: "3.7"
+
+services:
+  server:
+    container_name: server
+    build:
+      dockerfile: ./docker/Dockerfile
+      context: .
+    command: gunicorn --bind 0.0.0.0:8000 runserver:app
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - playlists:/app/data
+  celery:
+    container_name: celery
+    build:
+      dockerfile: ./docker/Dockerfile
+      context: .
+    command: celery -A gepify.celery worker --loglevel=info -f celery.log
+    env_file: .env
+    volumes:
+      - playlists:/app/data
+  celerybeat:
+    container_name: celerybeat
+    build:
+      dockerfile: ./docker/Dockerfile
+      context: .
+    command: celery -A gepify beat -f beat.log
+    env_file: .env
+    volumes:
+      - playlists:/app/data
+  redis:
+    container_name: redis
+    image: redis:5-alpine
+    volumes:
+      - redis:/data
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3-alpine
+  influxdb:
+    container_name: influxdb
+    image: influxdb:1.7-alpine
+    volumes:
+      - influxdb:/var/lib/influxdb
+
+volumes:
+  redis:
+  influxdb:
+  playlists:

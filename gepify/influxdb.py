@@ -13,8 +13,8 @@ class Client:
         host = os.environ.get('INFLUXDB_HOST')
         port = os.environ.get('INFLUXDB_PORT', 8086)
         username = os.environ.get('INFLUXDB_USER', 'root')
-        password = os.environ.get('INFLUXDB_PASSWORD', 'root')
-        database = os.environ.get('INFLUXDB_DATABASE', 'gepify')
+        password = os.environ.get('INFLUXDB_USER_PASSWORD', 'root')
+        database = os.environ.get('INFLUXDB_DB', 'gepify')
 
         self.client = None
         if host:

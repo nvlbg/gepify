@@ -9,7 +9,7 @@ import os
 from apiclient.discovery import build
 from apiclient.errors import HttpError
 import youtube_dl
-from . import SUPPORTED_FORMATS
+from . import SUPPORTED_FORMATS, SONGS_DIRECTORY
 
 DEVELOPER_KEY = os.environ.get('YOUTUBE_DEVELOPER_KEY')
 YOUTUBE_API_SERVICE_NAME = 'youtube'
@@ -18,7 +18,7 @@ YOUTUBE_API_VERSION = 'v3'
 downloaders = {
     'mp3': youtube_dl.YoutubeDL({
         'format': 'bestaudio/best',
-        'outtmpl': 'songs/%(id)s.%(ext)s',
+        'outtmpl': '{}/%(id)s.%(ext)s'.format(SONGS_DIRECTORY),
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
@@ -27,7 +27,7 @@ downloaders = {
     }),
     'ogg': youtube_dl.YoutubeDL({
         'format': 'bestaudio/best',
-        'outtmpl': 'songs/%(id)s.%(ext)s',
+        'outtmpl': '{}/%(id)s.%(ext)s'.format(SONGS_DIRECTORY),
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'vorbis',
@@ -36,7 +36,7 @@ downloaders = {
     }),
     'opus': youtube_dl.YoutubeDL({
         'format': 'bestaudio/best',
-        'outtmpl': 'songs/%(id)s.%(ext)s',
+        'outtmpl': '{}/%(id)s.%(ext)s'.format(SONGS_DIRECTORY),
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'opus',
@@ -45,7 +45,7 @@ downloaders = {
     }),
     'aac': youtube_dl.YoutubeDL({
         'format': 'bestaudio/best',
-        'outtmpl': 'songs/%(id)s.%(ext)s',
+        'outtmpl': '{}/%(id)s.%(ext)s'.format(SONGS_DIRECTORY),
         'postprocessor_args': ['-strict', '-2'],
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',

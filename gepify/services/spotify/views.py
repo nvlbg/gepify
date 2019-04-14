@@ -156,7 +156,10 @@ def download_song(song_name, format):
 def download_playlist():
     influxdb.count('spotify.download_playlist_requests')
 
-    playlist_id = request.form['playlist_id']
+    playlist_id = request.form.get('playlist_id')
+    if playlist_id is None:
+        return render_template(
+            'show_message.html', message='Invalid request'), 400
     format = request.form.get('format', SUPPORTED_FORMATS[0])
     provider = request.form.get('provider', SUPPORTED_PROVIDERS[0])
 

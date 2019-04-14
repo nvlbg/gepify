@@ -1,6 +1,7 @@
 # cache files
 gepify.egg-info/
 *.pyc
+.eggs/
 
 # text editors configurations
 .vscode/
@@ -26,3 +27,6 @@ celerybeat-schedule
 # direnv files
 .envrc
 .direnv/
+
+# docker files
+.env

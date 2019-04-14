@@ -90,7 +90,7 @@ class SongsTasksTestCase(TestCase):
         songs.download_song({'name': 'song'})
         download_song.assert_called_with('dQw4w9WgXcQ', 'mp3')
         song = songs.get_song('song')
-        self.assertEqual(song['files']['mp3'], 'songs/dQw4w9WgXcQ.mp3')
+        self.assertEqual(song['files']['mp3'], './songs/dQw4w9WgXcQ.mp3')
 
     @mock.patch('gepify.providers.soundcloud.get_song_id',
                 side_effect=lambda name: (1234, 'song id'))
@@ -99,7 +99,7 @@ class SongsTasksTestCase(TestCase):
         songs.download_song({'name': 'song'}, provider='soundcloud')
         download_song.assert_called_with('song id', 'mp3')
         song = songs.get_song('song')
-        self.assertEqual(song['files']['mp3'], 'songs/1234.mp3')
+        self.assertEqual(song['files']['mp3'], './songs/1234.mp3')
 
 
 class PlaylistsTestCase(TestCase):
@@ -132,9 +132,9 @@ def mocked_list_dir(dir):
 
 
 def mocked_getmtime(file):
-    if file == 'playlists/1.zip':
+    if file == './playlists/1.zip':
         return time.time() - 60 * 60
-    if file == 'playlists/2.zip':
+    if file == './playlists/2.zip':
         return time.time() - 42
 
 
@@ -162,7 +162,7 @@ class PlaylistsTasksTestCase(TestCase):
     def test_clean_playlists(self, os_remove, *args):
         playlists.clean_playlists()
         self.assertEqual(os_remove.call_count, 1)
-        os_remove.assert_called_with('playlists/1.zip')
+        os_remove.assert_called_with('./playlists/1.zip')
 
     @mock.patch('logging.Logger')
     def test_handle_error(self, *args):
@@ -231,7 +231,7 @@ class PlaylistsTasksTestCase(TestCase):
         self.assertTrue(os.path.isfile('playlists/spotify_1234_mp3.zip'))
 
         playlist = playlists.cache.get('spotify_1234_mp3')
-        self.assertEqual(playlist['path'], 'playlists/spotify_1234_mp3.zip')
+        self.assertEqual(playlist['path'], './playlists/spotify_1234_mp3.zip')
         self.assertEqual(playlist['checksum'], checksum)
 
 

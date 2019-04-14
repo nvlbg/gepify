@@ -9,7 +9,7 @@
 from werkzeug.contrib.cache import RedisCache
 from gepify.celery import celery_app
 from celery.utils.log import get_task_logger
-from . import youtube, soundcloud, SUPPORTED_FORMATS
+from . import youtube, soundcloud, SUPPORTED_FORMATS, SONGS_DIRECTORY
 
 cache = RedisCache(key_prefix='song_info_', default_timeout=0)
 logger = get_task_logger(__name__)
@@ -146,7 +146,7 @@ def download_song(self, song_info, provider='youtube', format='mp3'):
             youtube.download_song(song_id, format)
             add_song_file(
                 song_info['name'],
-                'songs/{}.{}'.format(song_id, format), format)
+                '{}/{}.{}'.format(SONGS_DIRECTORY, song_id, format), format)
         elif provider == 'soundcloud':
             if 'soundcloud' not in song_info:
                 song_id, download_id = soundcloud.get_song_id(
@@ -156,7 +156,7 @@ def download_song(self, song_info, provider='youtube', format='mp3'):
             soundcloud.download_song(download_id, format)
             add_song_file(
                 song_info['name'],
-                'songs/{}.{}'.format(song_id, format), format)
+                '{}/{}.{}'.format(SONGS_DIRECTORY, song_id, format), format)
         else:
             raise ValueError('Provider not found: {}'.format(provider))
     except:

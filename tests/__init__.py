@@ -11,6 +11,7 @@ class GepifyTestCase(TestCase):
         self.app.config['DEBUG'] = True
         self.app.config['PROPAGATE_EXCEPTIONS'] = False
         self.app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
+        self.app.logger = mock.Mock()
         return self.app
 
     def setUp(self):

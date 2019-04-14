@@ -117,7 +117,6 @@ class ProfileMixin():
 
 @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
 class SpotifyDecoratorsTestCase(GepifyTestCase, ProfileMixin):
-    @mock.patch('logging.Logger')
     def test_login_required_decorator(self, *args):
         @self.app.route('/test')
         @spotify.view_decorators.login_required
@@ -347,7 +346,6 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertIn(b'You need to be logged out to see this page',
                       response.data)
 
-    @mock.patch('logging.Logger')
     @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
     def test_login_callback(self, post, *args):
         response = self.client.get(
@@ -372,7 +370,6 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertRedirects(response, url_for('spotify.index'))
         self.assertEqual(post.call_count, 1)
 
-    @mock.patch('logging.Logger')
     @mock.patch('requests.post', side_effect=mocked_spotify_api_404)
     def test_login_callback_with_spotify_error(self, post, *args):
         with self.client.session_transaction() as sess:
@@ -408,7 +405,6 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assert200(response)
         self.assertIn(b'Use Somebody', response.data)
 
-    @mock.patch('logging.Logger')
     def test_download_song_in_unsupported_format(self, *args):
         self.login()
         response = self.client.get(
@@ -417,7 +413,6 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertEqual(response.status_code, 400)
         self.assertIn(b'Unsupported format', response.data)
 
-    @mock.patch('logging.Logger')
     def test_download_song_with_unsupported_provider(self, *args):
         self.login()
         response = self.client.get(
@@ -457,7 +452,6 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertTrue(response.content_type.startswith('audio'))
         response.close()
 
-    @mock.patch('logging.Logger')
     def test_download_playlist_with_wrong_post_data(self, *args):
         self.login()
         response = self.client.post(url_for('spotify.download_playlist'))
@@ -527,7 +521,7 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertIn(b'Your playlist is getting downloaded', response.data)
 
     @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
-    def test_get_access_token(self, post):
+    def test_get_access_token_success(self, post):
         response = self.client.get(
             '/spotify/get_access_token/code'
         )
@@ -537,9 +531,8 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertIn(b'refresh me', response.data)
         self.assertIn(b'60', response.data)
 
-    @mock.patch('logging.Logger')
     @mock.patch('requests.post', side_effect=mocked_spotify_api_404)
-    def test_get_access_token(self, post, logger):
+    def test_get_access_token_error(self, post):
         response = self.client.get(
             '/spotify/get_access_token/code'
         )
@@ -549,7 +542,7 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
                       b'Please, try again.', response.data)
 
     @mock.patch('requests.post', side_effect=mocked_spotify_api_post)
-    def test_refresh_access_token(self, post):
+    def test_refresh_access_token_success(self, post):
         response = self.client.get(
             '/spotify/refresh_access_token/refresh me'
         )
@@ -559,9 +552,8 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
         self.assertIn(b'refresh me again', response.data)
         self.assertIn(b'60', response.data)
 
-    @mock.patch('logging.Logger')
     @mock.patch('requests.post', side_effect=mocked_spotify_api_401)
-    def test_get_access_token(self, post, logger):
+    def test_refresh_access_token_error(self, post):
         response = self.client.get(
             '/spotify/refresh_access_token/refresh me'
         )

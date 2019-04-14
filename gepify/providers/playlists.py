@@ -8,7 +8,7 @@
 
 from werkzeug.contrib.cache import RedisCache
 from gepify.celery import celery_app
-from . import songs
+from . import songs, PLAYLISTS_DIRECTORY
 from .songs import SUPPORTED_FORMATS
 from celery import chord
 from celery.utils.log import get_task_logger
@@ -99,7 +99,7 @@ def handle_error(playlist_cache_key):
 @celery_app.task
 def create_zip_playlist(playlist, service, checksum, format='mp3'):
     playlist_cache_key = '{}_{}_{}'.format(service, playlist['id'], format)
-    playlist_zip_filename = 'playlists/{}.zip'.format(playlist_cache_key)
+    playlist_zip_filename = '{}/{}.zip'.format(PLAYLISTS_DIRECTORY, playlist_cache_key)
     playlist_zip = zipfile.ZipFile(playlist_zip_filename, 'w')
     playlist_m3u_contents = ['#EXTM3U']
 
@@ -200,8 +200,8 @@ def download_playlist(playlist, service, provider='youtube', format='mp3'):
 def clean_playlists():
     """Delete old playlist files."""
 
-    for playlist in os.listdir('playlists/'):
-        path_to_playlist = 'playlists/{}'.format(playlist)
+    for playlist in os.listdir(PLAYLISTS_DIRECTORY):
+        path_to_playlist = '{}/{}'.format(PLAYLISTS_DIRECTORY, playlist)
         last_modified = os.path.getmtime(path_to_playlist)
         now = time.time()
 

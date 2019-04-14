@@ -12,6 +12,10 @@ services:
       - "8000:8000"
     volumes:
       - playlists:/app/data
+    depends_on:
+      - redis
+      - rabbitmq
+      - influxdb
   celery:
     container_name: celery
     build:
@@ -21,6 +25,10 @@ services:
     env_file: .env
     volumes:
       - playlists:/app/data
+    depends_on:
+      - redis
+      - rabbitmq
+      - influxdb
   celerybeat:
     container_name: celerybeat
     build:
@@ -30,6 +38,10 @@ services:
     env_file: .env
     volumes:
       - playlists:/app/data
+    depends_on:
+      - redis
+      - rabbitmq
+      - influxdb
   redis:
     container_name: redis
     image: redis:5-alpine

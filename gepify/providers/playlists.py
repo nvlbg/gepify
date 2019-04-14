@@ -17,7 +17,14 @@ from hashlib import md5
 import os
 import time
 
-cache = RedisCache(key_prefix='playlist_', default_timeout=0)
+cache = RedisCache(
+    host=os.environ.get('REDIS_HOST', 'localhost'),
+    port=os.environ.get('REDIS_PORT', 6379),
+    password=os.environ.get('REDIS_PASS', ''),
+    db=os.environ.get('REDIS_DB', 'gepify'),
+    key_prefix='playlist_',
+    default_timeout=0
+)
 logger = get_task_logger(__name__)
 
 

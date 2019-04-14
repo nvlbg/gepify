@@ -6,12 +6,21 @@
     as well as functionality to download songs.
 """
 
+import os
+
 from werkzeug.contrib.cache import RedisCache
 from gepify.celery import celery_app
 from celery.utils.log import get_task_logger
 from . import youtube, soundcloud, SUPPORTED_FORMATS, SONGS_DIRECTORY
 
-cache = RedisCache(key_prefix='song_info_', default_timeout=0)
+cache = RedisCache(
+    host=os.environ.get('REDIS_HOST', 'localhost'),
+    port=os.environ.get('REDIS_PORT', 6379),
+    password=os.environ.get('REDIS_PASS', ''),
+    db=os.environ.get('REDIS_DB', 'gepify'),
+    key_prefix='song_info_',
+    default_timeout=0
+)
 logger = get_task_logger(__name__)
 
 

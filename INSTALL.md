@@ -65,7 +65,6 @@ Here are the configuration options:
  - REDIS_HOST: the host where redis is running (default is localhost)
  - REDIS_PORT: the port on which redis is listening (default is 6379)
  - REDIS_PASS: the password of the redis server (default is empty password)
- - REDIS_DB: the redis database name (default is gepify)
 
 
 Running the server

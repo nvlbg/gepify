@@ -438,7 +438,7 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
                 side_effect=lambda song, format: True)
     @mock.patch('gepify.providers.songs.get_song',
                 side_effect=lambda song: {
-                    'name': song, 'files': {'mp3': song + '.mp3'}})
+                    'name': song, 'files': {'mp3': os.getcwd() + '/' + song + '.mp3'}})
     def test_download_song_if_song_is_not_missing(self, *args):
         with open('test song.mp3', 'w+') as f:
             f.write('some data')
@@ -488,7 +488,7 @@ class SpotifyViewsTestCase(GepifyTestCase, ProfileMixin):
                 side_effect=lambda *args: True)
     @mock.patch('gepify.providers.playlists.get_playlist',
                 side_effect=lambda *args: {
-                    'path': 'playlist.zip',
+                    'path': os.getcwd() + '/playlist.zip',
                     'checksum': '89c2226a90943679844cdc71693bc543'})
     @mock.patch('spotipy.Spotify', side_effect=MockSpotipy)
     def test_download_playlist_if_playlist_is_not_missing(self, *args):

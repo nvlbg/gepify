@@ -20,7 +20,7 @@ httplib2==0.11.3          # via google-api-python-client, oauth2client
 idna==2.6                 # via requests
 influxdb==5.0.0
 itsdangerous==0.24        # via flask
-jinja2==2.10              # via flask
+jinja2==2.11.3              # via flask
 kombu==4.5.0              # via celery
 markupsafe==1.0           # via jinja2
 oauth2client==4.1.2       # via google-api-python-client

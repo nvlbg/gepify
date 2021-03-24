@@ -30,7 +30,7 @@ python-dateutil==2.7.2    # via influxdb
 pytz==2018.3              # via celery, influxdb
 redis==2.10.6
 requests==2.21.0
-rsa==3.4.2                # via oauth2client
+rsa==4.1                # via oauth2client
 simplejson==3.13.2        # via soundcloud
 six==1.11.0               # via google-api-python-client, influxdb, oauth2client, python-dateutil
 soundcloud==0.5.0

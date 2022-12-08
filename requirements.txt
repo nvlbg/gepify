@@ -7,7 +7,7 @@
 amqp==2.4.2
 billiard==3.6.0.0         # via celery
 celery==4.3.0
-certifi==2018.1.18        # via requests
+certifi==2022.12.7        # via requests
 chardet==3.0.4            # via requests
 click==6.7                # via flask
 coverage==4.5.1
